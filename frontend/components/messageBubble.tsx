@@ -57,7 +57,7 @@ export const MessageBubble = ({
                     <Svg width={12} height={20} viewBox="0 0 12 20">
                         <Path
                             d="M0 0 Q0 10 12 20 Q0 18 0 14 Z"
-                            fill="#27af156b"
+                            fill="#134d37"
                         />
                     </Svg>
                 </View>
@@ -101,7 +101,7 @@ type MessageBubbleStyle = {
 }
 
 const userMessageStyle: MessageBubbleStyle = {
-    backgroundColor: "#27af156b",
+    backgroundColor: "#134d37",
     padding: 10,
     borderRadius: 10,
     borderBottomRightRadius: 5, // Remove corner for tail
