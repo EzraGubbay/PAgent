@@ -1,4 +1,4 @@
-import { View, FlatList } from "react-native"
+import { View, FlatList, Keyboard } from "react-native"
 import { MessageBubble } from "./messageBubble"
 import { MessageType } from "../types/message-type";
 import React, { useRef } from "react";
@@ -30,7 +30,7 @@ export const ChatMessages = React.memo(({ chatHistory }: ChatMessagesProps) => {
     const handleScroll = (event: any) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
         const paddingToBottom = 50;
-        const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+        const isCloseToBottom = contentOffset.y <= paddingToBottom;
 
         if (isCloseToBottom) {
             setShowScrollButton(false);
@@ -41,16 +41,17 @@ export const ChatMessages = React.memo(({ chatHistory }: ChatMessagesProps) => {
     };
 
     const scrollToBottom = () => {
-        flatListRef.current?.scrollToEnd({ animated: true });
+        flatListRef.current?.scrollToOffset({ animated: true, offset: 0 });
         setShowScrollButton(false);
         setUnreadCount(0);
     };
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, marginBottom: -10 }}>
             <FlatList
+                inverted
                 ref={flatListRef}
-                data={chatHistory}
+                data={[...chatHistory].reverse()}
                 keyboardDismissMode="on-drag"
                 renderItem={({ item }) => (
                     <MessageBubble message={item.message} type={item.type} />
@@ -58,11 +59,12 @@ export const ChatMessages = React.memo(({ chatHistory }: ChatMessagesProps) => {
                 keyExtractor={(_, index) => index.toString()}
                 onContentSizeChange={() => {
                     if (!showScrollButton) {
-                        flatListRef.current?.scrollToEnd({ animated: true });
+                        flatListRef.current?.scrollToOffset({ animated: true, offset: 0 });
                     }
                 }}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
+                style={{ flex: 1 }}
             />
             {showScrollButton && (
                 <TouchableOpacity
@@ -72,9 +74,9 @@ export const ChatMessages = React.memo(({ chatHistory }: ChatMessagesProps) => {
                         bottom: 20,
                         right: 20,
                         backgroundColor: "#333",
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
                         alignItems: "center",
                         justifyContent: "center",
                         shadowColor: "#000",
@@ -84,7 +86,7 @@ export const ChatMessages = React.memo(({ chatHistory }: ChatMessagesProps) => {
                         elevation: 5,
                     }}
                 >
-                    <Feather name="chevron-down" size={24} color="#E0E0E0" />
+                    <Feather name="chevron-down" size={18} color="#E0E0E0" />
                     {unreadCount > 0 && (
                         <View style={{
                             position: "absolute",

@@ -1,3 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadUserData } from "./types/data";
+
 export class ServerSideError extends Error {
     constructor(message: string) {
         super(message);
@@ -5,13 +8,64 @@ export class ServerSideError extends Error {
     }
 }
 
-export const sendMessage = async (message: string) => {
+export const connect = async () => {
+    const userData = await loadUserData();
+    const response = await fetch("https://notifications.ezragubbay.com/connect", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            uid: userData.uid
+        })
+    });
+
+    if (response.status >= 500) {
+        throw new ServerSideError(`HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+}
+
+export const login = async (username: string, passhash: string) => {
+    const userData = await loadUserData();
+    const response = await fetch("https://notifications.ezragubbay.com/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            uid: userData.uid,
+            username: username,
+            passhash: passhash
+        })
+    });
+
+    if (response.status >= 500) {
+        throw new ServerSideError(`HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+}
+
+export interface Attachment {
+    mimeType: string;
+    base64: string;
+    fileName: string;
+}
+
+export const sendMessage = async (data: { uid: string, prompt: string, notificationToken: string, notify: boolean, attachments?: Attachment[] }) => {
+    console.log("Sending message:", data);
     const response = await fetch("https://notifications.ezragubbay.com/sendMessage", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: message }),
+        body: JSON.stringify(data),
     });
 
     if (response.status >= 500) {
@@ -22,6 +76,30 @@ export const sendMessage = async (message: string) => {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data;
+    const reply = await response.json();
+    return reply;
+};
+
+export const remoteEraseAssistantChat = async () => {
+    const userData = await loadUserData();
+    console.log("Erasing assistant chat for user:", userData);
+    const response = await fetch("https://notifications.ezragubbay.com/loadNewChat", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uid: userData.uid }),
+    });
+
+    if (response.status >= 500) {
+        throw new ServerSideError(`HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reply = await response.json();
+    console.log("Remote erase assistant chat reply:", reply);
+    return reply;
 };
