@@ -16,10 +16,10 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   // AsyncStorage.getItem('@userData').then((data) => {
   //   AsyncStorage.setItem('@userData', JSON.stringify({
-  //     uid: "7d001295-b32d-448b-99ca-d72810198415",
-  //     username: "ezragubbay",
-  //     name: "Ezra Gubbay",
-  //     notificationToken: "e5jt-r5AHbwM1eizZT1PfY:APA91bGyufiWU5Tmq73tie-YkWQSkqxDh9V0iD_klnM3T2RBLgO9Z45VcUihcBarj97dEFo9jwLj8mEXqtZOAXy01eil5KGTa-YSbHuWApwqEKqDTnMyIr8",
+  //     uid: "PLACEHOLDER_UID",
+  //     username: "username",
+  //     name: "User Name",
+  //     notificationToken: "PLACEHOLDER_TOKEN",
   //     receiveNotifications: true,
   //   }));
   // });
@@ -51,7 +51,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <MenuProvider>
+      <MenuProvider customStyles={{ backdrop: { backgroundColor: 'rgba(0, 0, 0, 0.5)' } }}>
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {isUserLoggedIn ? (

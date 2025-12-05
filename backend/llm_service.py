@@ -1,18 +1,25 @@
 import os
 from google import genai
 from google.genai import types
+import base64
 from dotenv import load_dotenv
 from typing import List, Dict
+from gemini_tools_lib import GEMINI_TOOLS, GeminiToolHandler, AuthManager
+from vdb import VDBManager
 
 load_dotenv()
-API_KEY = os.getenv("GEMINI_API_KEY")
-if not API_KEY:
+LLM_API_KEY = os.getenv("GEMINI_API_KEY")
+TODOIST_API_KEY = os.getenv("TODOIST_API_KEY")
+
+if not LLM_API_KEY:
     raise ValueError("API Key not found! Check your .env file.")
 
 LLM_MODEL = "gemini-2.5-flash"
 
 SYSTEM_INSTRUCTION = """
 You are Steve, a dedicated and intelligent Personal Assistant. Your mission is to manage the user's schedule, tasks, and preferences with precision and care.
+The following are a set of rules you rigidly follow and will adhere carefully and precisely to all of them. Especially checking the current date and time before
+each task you perform.
 
 **IDENTITY & PERSONA**
 - **Name**: Steve.
@@ -42,35 +49,126 @@ You are Steve, a dedicated and intelligent Personal Assistant. Your mission is t
 - **Ask When Unsure**: If a request is vague ("Schedule a meeting with John"), ask for necessary details (Which John? When? What topic?).
 - **Confirmation**: Explicitly confirm the final details of any action (creating, deleting, or moving events) before executing it.
 
+**CRITICAL SAFETY RULES**
+- **Explicit Permission Required**: You must ALWAYS ask for explicit user permission before UPDATING or DELETING any task in Todoist or event in Google Calendar. This rule is absolute and cannot be ignored.
+    - *Example*: "I found the task 'Buy Milk'. Do you want me to delete it?" -> Wait for "Yes".
+    - *Example*: "I will update the meeting time to 3 PM. Is that correct?" -> Wait for "Yes".
+
 **INTERACTION GUIDELINES**
 - Be concise in your responses.
 - Use clear, natural language.
 - When presenting options (e.g., for time slots), give a few distinct choices.
+- When adding text formatting to messages, your available options are: single-asterisk ** for bold, __ for italicized, and ~~ for strikethrough. You are to exclusively use these for formatting and nothing else. Do not try to format text as bold using **<text>** for example, but rather *<text>*
 """
 
+# TODO: LLM Client should manage a chat per user, accessed via active chat identifier in user data.
 class LLMClient():
     def __init__(self, model=LLM_MODEL, chat_size_limit=100):
-        self.client = genai.Client(api_key=API_KEY)
-        self.model = model
-        self.chat_size_limit = chat_size_limit
-        self.chat_message_len = 0
-        
+
+        self.auth_manager = AuthManager(todoist_token=TODOIST_API_KEY)
+        self.tool_handler = GeminiToolHandler(self.auth_manager)
+        self.client = genai.Client(api_key=LLM_API_KEY, http_options=types.HttpOptions(api_version='v1alpha'))
+
+        # Initialize Vector Database Client
+        self.vdbmanager = VDBManager(llmclient=self.client)
+
         self.config = types.GenerateContentConfig(
+            tools=[
+                types.Tool(
+                    function_declarations=GEMINI_TOOLS,
+                )
+            ],
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True
+            ),
             system_instruction=SYSTEM_INSTRUCTION
         )
-        
-        self.chat = self.client.chats.create(model=self.model, config=self.config)
 
-    def sendMessage(self, prompt: Dict[str, str], files: List[str]=None) -> str:
-        uploaded_files = []
-        if files:
-            for file in files:
-                uploaded_files.append(self.client.files.upload(file))
+        self.chat = self.client.chats.create(model=model, config=self.config)
+        self.chat_size_limit = chat_size_limit
+        self.chat_message_len = 0
+
+    def sendMessage(self, prompt: str, attachments: List[Dict[str, str]]=None) -> str:
+        parts = []
+        if prompt:
+            parts.append(types.Part.from_text(text=prompt))
+
+            filepaths = self.vdbmanager.vdb_search(prompt)
+            for filepath in filepaths:
+                print(f'[LLM-DBG] Received vector from RAG search: {filepath}')
+
+                if os.path.exists(filepath):
+                    with open(filepath, 'rb') as file:
+                        content = file.read()
+                    parts.append(types.Part.from_bytes(
+                        data=content,
+                        mime_type=file.get('file_type')
+                    ))
+
+        if attachments:
+            for attachment in attachments:
+                decoded = base64.b64decode(attachment.get('base64'))
+                filepath = self.vdbmanager.save_file(filename=attachment.get('fileName'), content=decoded)
+                self.vdbmanager.embed(filepath=filepath, content=decoded)
+
+                parts.append(types.Part.from_bytes(
+                    data=decoded,
+                    mime_type=attachment.get('mimeType')
+                ))
 
         if self.chat_message_len > self.chat_size_limit:
-            self.chat = self.client.chats.create(model=self.model, config=self.config)
+            self.chat = self.client.chats.create(model=model, config=self.config)
             self.chat_message_len = 0
 
-        assistant_response = self.chat.send_message(prompt['message'])
+        # Handle Tool Calls (Loop until the model returns text)
+        response = self.chat.send_message(parts)
+
+        status = {
+            'status_code': True,
+            'errors': []
+        }
+
+        while response.function_calls:
+            print(f"🤖 Model requested {len(response.function_calls)} tool(s)")
+            
+            # We must collect ALL responses for this turn into a list of parts
+            response_parts = []
+
+            for tool_call in response.function_calls:
+                print(f"  > Executing: {tool_call.name}")
+                
+                # Execute the tool
+                result = self.tool_handler.handle_tool_call(
+                    tool_call.name, 
+                    tool_call.args
+                )
+
+                # if "error" in result:
+                #     status['status_code'] = False
+                #     status['errors'].append(result['error'])
+                print(result)
+
+                # CHANGE 3: Create correct SDK Objects (Part -> FunctionResponse)
+                # We wrap the result in a strongly typed FunctionResponse
+                fn_response = types.FunctionResponse(
+                    name=tool_call.name,
+                    response={"result": result}
+                )
+                
+                # Add to our list of parts to send back
+                response_parts.append(types.Part(function_response=fn_response))
+
+            # CHANGE 4: Send ALL tool results back in a single message
+            # This satisfies the model's need to see results for all tools it requested
+            response = self.chat.send_message(response_parts)
+        
+        if status:
+            print(f"[LLM-SUCCESS] LLM reported successful task completion for user")
+        else:
+            print(f"[LLM-FAIL] LLM reported successful task completion for user")
+            print("Received Errors:")
+            for error in status["errors"]:
+                print(error, "\n")
+
         self.chat_message_len += 1
-        return assistant_response.text
+        return response.text
