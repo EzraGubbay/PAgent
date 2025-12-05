@@ -1,20 +1,61 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from "react-native";
 import { MessageType } from "../types/message-type";
 import { Dimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { Attachment } from "../networking";
+import { Menu, MenuOption, MenuOptions, MenuTrigger } from "react-native-popup-menu";
+import * as Clipboard from 'expo-clipboard';
+import { Feather } from "@expo/vector-icons";
+import React, { useRef } from "react";
 
 interface MessageBubbleProps {
     message: string;
     type: MessageType;
+    attachments?: Attachment[];
 }
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+const ScaleTouchable = React.forwardRef((props: any, ref: any) => {
+    const scale = useRef(new Animated.Value(1)).current;
+
+    const onPressIn = () => {
+        Animated.spring(scale, {
+            toValue: 1.05,
+            useNativeDriver: true,
+            friction: 3,
+        }).start();
+        props.onPressIn && props.onPressIn();
+    };
+
+    const onPressOut = () => {
+        Animated.spring(scale, {
+            toValue: 1,
+            useNativeDriver: true,
+            friction: 3,
+        }).start();
+        props.onPressOut && props.onPressOut();
+    };
+
+    return (
+        <AnimatedTouchableOpacity
+            ref={ref}
+            {...props}
+            activeOpacity={1}
+            onPressIn={onPressIn}
+            onPressOut={onPressOut}
+            style={[props.style, { transform: [{ scale }] }]}
+        >
+            {props.children}
+        </AnimatedTouchableOpacity>
+    );
+});
 
 export const MessageBubble = ({
     message,
     type,
-}: {
-    message: string;
-    type: MessageType;
-}) => {
+    attachments
+}: MessageBubbleProps) => {
     const formatMessage = (text: string) => {
         // Split by formatting markers: *bold*, _italic_, ~strike~
         const parts = text.split(/(\*[^*]+\*|_[^_]+_|~[^~]+~)/g);
@@ -31,19 +72,67 @@ export const MessageBubble = ({
         });
     };
 
+    const copyToClipboard = async () => {
+        await Clipboard.setStringAsync(message);
+    };
+
     return (
         <View style={
             type === MessageType.User ? userMessageStyle
                 : type === MessageType.Assistant ? assistantMessageStyle
                     : systemMessageStyle
         }>
-            <Text style={{
-                fontSize: 16,
-                fontWeight: "400",
-                color: type === MessageType.User || type === MessageType.Assistant ? "#E0E0E0" : "#f5b505ff"
-            }}>
-                {formatMessage(message)}
-            </Text>
+            <Menu>
+                <MenuTrigger
+                    triggerOnLongPress
+                    customStyles={{
+                        TriggerTouchableComponent: ScaleTouchable,
+                    }}
+                >
+                    <View>
+                        {attachments && attachments.map((attachment, index) => (
+                            <Image
+                                key={index}
+                                source={{ uri: `data:${attachment.mimeType};base64,${attachment.base64}` }}
+                                style={{
+                                    width: 200,
+                                    height: 150,
+                                    borderRadius: 10,
+                                    marginBottom: message ? 10 : 0,
+                                    resizeMode: "cover"
+                                }}
+                            />
+                        ))}
+                        {message ? (
+                            <Text style={{
+                                fontSize: 16,
+                                fontWeight: "400",
+                                color: type === MessageType.User || type === MessageType.Assistant ? "#E0E0E0" : "#f5b505ff"
+                            }}>
+                                {formatMessage(message)}
+                            </Text>
+                        ) : null}
+                    </View>
+                </MenuTrigger>
+                <MenuOptions optionsContainerStyle={{
+                    backgroundColor: "#2C2C2C",
+                    borderRadius: 12,
+                    padding: 5,
+                    marginTop: -30,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                    elevation: 5,
+                }}>
+                    <MenuOption onSelect={copyToClipboard} style={{ padding: 10 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <Feather name="copy" size={16} color="#E0E0E0" style={{ marginRight: 10 }} />
+                            <Text style={{ color: "#E0E0E0", fontSize: 14 }}>Copy Text</Text>
+                        </View>
+                    </MenuOption>
+                </MenuOptions>
+            </Menu>
 
             {/* User Tail */}
             {type === MessageType.User && (

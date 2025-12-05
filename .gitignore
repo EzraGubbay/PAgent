@@ -1,6 +1,14 @@
 .DS_Store
 ios
 PAgent.pdf
-PAgent-todo.md
 backend/.env
 backend/token.json
+backend/pagentServiceAccountKey.json
+backend/__pycache__
+backend/client_secret_202059952530-5bdlemanf02471fnqup222360u29o12d.apps.googleusercontent.com.json
+backend/backend-todo.md
+backend/temp_cache/
+backend/pagent_vector_db/
+backend/storage/
+backend/gemini_tools_lib/__pycache__
+backend/gemini_tools_lib/gemini_tools_requirements.md

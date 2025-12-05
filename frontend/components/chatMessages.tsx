@@ -1,12 +1,13 @@
 import { View, FlatList, Keyboard } from "react-native"
 import { MessageBubble } from "./messageBubble"
 import { MessageType } from "../types/message-type";
+import { ChatMessage } from "../types/chat-message";
 import React, { useRef } from "react";
 import { Feather } from "@expo/vector-icons";
 import { TouchableOpacity, Text } from "react-native";
 
 interface ChatMessagesProps {
-    chatHistory: { message: string; type: MessageType }[];
+    chatHistory: ChatMessage[];
 }
 
 export const ChatMessages = React.memo(({ chatHistory }: ChatMessagesProps) => {
@@ -54,7 +55,7 @@ export const ChatMessages = React.memo(({ chatHistory }: ChatMessagesProps) => {
                 data={[...chatHistory].reverse()}
                 keyboardDismissMode="on-drag"
                 renderItem={({ item }) => (
-                    <MessageBubble message={item.message} type={item.type} />
+                    <MessageBubble message={item.message} type={item.type} attachments={item.attachments} />
                 )}
                 keyExtractor={(_, index) => index.toString()}
                 onContentSizeChange={() => {

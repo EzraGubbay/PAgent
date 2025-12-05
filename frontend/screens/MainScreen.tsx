@@ -18,6 +18,7 @@ import { Feather } from "@expo/vector-icons";
 import Svg, { Defs, Pattern, Circle, Rect } from "react-native-svg";
 import { ChatMessages } from "../components/chatMessages";
 import { ServerSideError, sendMessage, Attachment } from "../networking";
+import { ChatMessage } from "../types/chat-message";
 import { MessageType } from "../types/message-type";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
@@ -39,7 +40,7 @@ export default function MainScreen({ navigation }: { navigation: any }) {
     const messageRef = useRef("");
     const inputRef = useRef<TextInput>(null);
 
-    const [chatHistory, setChatHistory] = useState<{ message: string; type: MessageType }[]>([]);
+    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
     const [isChatHistoryLoaded, setIsChatHistoryLoaded] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -163,7 +164,12 @@ export default function MainScreen({ navigation }: { navigation: any }) {
 
 
         // Optimistically add user message
-        setChatHistory(prev => [...prev, { message: userMessageContent, type: MessageType.User }]);
+        setChatHistory(prev => [...prev, { message: userMessageContent, type: MessageType.User, attachments: attachments }]);
+
+        // Clear inputs immediately
+        setAttachments([]);
+        setShowAttachments(false);
+
         Keyboard.dismiss();
         try {
             const reply = await sendMessage({
@@ -177,8 +183,6 @@ export default function MainScreen({ navigation }: { navigation: any }) {
             if (reply.status == "success") {
                 console.log("LLM finished processing");
                 console.log(reply.response);
-                setAttachments([]);
-                setShowAttachments(false);
             } else {
                 console.log(reply.error);
             }
@@ -392,7 +396,10 @@ export default function MainScreen({ navigation }: { navigation: any }) {
                                 justifyContent: "space-between",
                             }}>
                                 <TouchableOpacity
-                                    onPress={() => setShowAttachments(false)}
+                                    onPress={() => {
+                                        setShowAttachments(false);
+                                        setAttachments([]);
+                                    }}
                                     style={{
                                         marginLeft: "auto"
                                     }}>
