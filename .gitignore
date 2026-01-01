@@ -11,4 +11,4 @@ backend/temp_cache/
 backend/pagent_vector_db/
 backend/storage/
 backend/gemini_tools_lib/__pycache__
-backend/gemini_tools_lib/gemini_tools_requirements.md
+backend/gemini_tools_lib/gemini_tools_requirements.mdbackend/testing/test_calendar_tools.py backend/testing/test_gemini_tools.py backend/testing/test_new_tools.py
