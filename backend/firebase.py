@@ -41,5 +41,3 @@ def generate_notification(notificationToken, notification):
 # --- HOW TO USE IT ---
 # You need the token from your React App (Step 4 below)
 MY_IPHONE_TOKEN = os.getenv("IPHONE_FCM_TOKEN")
-
-# send_alert(MY_IPHONE_TOKEN, "Server Alert", "The Python script has finished the task!")

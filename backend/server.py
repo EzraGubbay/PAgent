@@ -60,8 +60,6 @@ def connect(auth):
     connected_users[uid] = request.sid
     print(f"[SOCKET-CONNECT] New connection from User: {uid} @ {request.sid}")
 
-    
-
 @socketio.on('disconnect')
 def disconnect():
     for uid, sid, in list(connected_users.items()):
@@ -199,4 +197,3 @@ def respond(message_type, uid, sid, payload):
 
 # if __name__ == '__main__':
     # socketio.run(app, host='0.0.0.0', port=8000)
-

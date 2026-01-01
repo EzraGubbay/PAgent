@@ -37,7 +37,7 @@ export default function AuthScreen({ navigation, onLoginSuccess }: { navigation:
             if (data.status === 'success') {
                 await AsyncStorage.setItem('@userData', JSON.stringify({
                     ...await loadUserData(),
-                    uid: data.response,
+                    uid: data.uid,
                     username: username
                 }));
                 onLoginSuccess();
