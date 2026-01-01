@@ -66,8 +66,6 @@ export default function MainScreen({ navigation }: { navigation: any }) {
                 return;
             }
 
-            console.log("Initializing socket for User:", uid);
-
             // 2. Initialize Socket with the REAL string ID
             socketRef.current = io(SOCKET_URL, {
                 transports: ["websocket"],
