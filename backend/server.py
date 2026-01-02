@@ -1,4 +1,3 @@
-# Current configuration is to limit AI chats to 100-messages long
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit, disconnect
 import socketio

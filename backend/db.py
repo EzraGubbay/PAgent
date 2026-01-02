@@ -5,6 +5,7 @@ import uuid
 from uuid import UUID
 from typing import Dict
 from bson.binary import UuidRepresentation
+import auth
 
 load_dotenv()
 MONGO_URL = os.getenv("MONGO_URL")
@@ -21,50 +22,60 @@ class DBManager():
         except Exception as e:
             print(f"[DB-ERR] Error initializing MongoDB Client:\n{e}")
 
-    def create_user(self, username: str, passhash: str) -> bool:
+    def create_user(self, username: str, password: str) -> bool:
+
+        # --- Check if user with that username already exists. ---
         try:
             exists = self.users.find_one({
                 "username": username
             })
             print(exists)
             if exists:
+                # If a user already exists, with that username, return False and error message
                 return False, "Username taken. Please choose a different username"
         except Exception as e:
             print(f"[DB-ERR] Error inserting new user in database {DB_NAME}:\n{e}")
             return False, "Error registering user..."
 
+        # --- Generate a new UUID for the user. ---
         uid = str(uuid.uuid4())
+
+        # --- Hash the given user password. ---
+        password = auth.hash_password(password)
+
         new_user = {
             "uid": uid,
             "username": username,
-            "passhash": passhash,
+            "password": password,
             "notificationToken": "",
             "messageQueue": [],
-            "userOnline": True,
+            "userOnline": False,
         }
 
         try:
+            # If user is successfully inserted, return True and the user's UUID
             self.users.insert_one(new_user)
             return True, uid
         except Exception as e:
             print(f"[DB-ERR] Error inserting new user in database {DB_NAME}:\n{e}")
             return False, "Error registering user..."
     
-    def login(self, username: str, passhash: str) -> bool:
+    def login(self, username: str, password: str) -> bool:
         query = {
             'username': username,
-            'passhash': passhash,
         }
 
         response = self.users.find_one(query)
-        if response:
+        if response and auth.verify_password(submitted_password=password, stored_password=response.get('password')):
             return True, response.get('uid')
-        return False, 'User not found'
+        return False, 'Invalid username or password'
     
     def addNotificationToken(self, uid, token) -> bool:
+        
         query = {
             'uid': uid
         }
+
         try:
             response = self.users.find_one(query)
             if response:

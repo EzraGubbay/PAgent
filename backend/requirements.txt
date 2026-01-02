@@ -3,5 +3,16 @@ google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
 google-genai
+lancedb
+pymongo
+motor
 python-dotenv
-flask
+fastapi
+uvicorn[standard]
+gunicorn
+python-socketio
+redis
+pypdf
+pypdf2
+firebase-admin
+bcrypt
