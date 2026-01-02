@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pagent-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pagent
+  template:
+    metadata:
+      labels:
+        app: pagent
+    spec:
+      containers:
+      - name: backend
+        # IMPORTANT: Ensure this matches the image name in GitHub (Lowercase!)
+        image: ghcr.io/ezragubbay/pagent-backend:latest
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - mountPath: "/app/storage/temp_storage"
+          name: uploads-volume
+        envFrom:
+        - secretRef:
+            name: app-secrets
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: uploads-volume
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+      imagePullSecrets:
+      - name: ghcr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pagent-backend
+spec:
+  # CHANGED to NodePort so Cloudflare (running on host) can reach it easily
+  type: NodePort
+  selector:
+    app: pagent
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30080 # We fix this port so we know where to point Cloudflare

@@ -1,3 +1,7 @@
+# Run as regular user
+RUN adduser -D pagentuser
+USER pagentuser
+
 # Python slim for efficiency
 FROM python:3.11-slim-bookworm
 
