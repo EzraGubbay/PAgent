@@ -22,7 +22,7 @@ class DBManager():
         except Exception as e:
             print(f"[DB-ERR] Error initializing MongoDB Client:\n{e}")
 
-    def create_user(self, username: str, password: str) -> bool:
+    def create_user(self, username: str, passwordHash: str) -> bool:
 
         # --- Check if user with that username already exists. ---
         try:
@@ -40,16 +40,12 @@ class DBManager():
         # --- Generate a new UUID for the user. ---
         uid = str(uuid.uuid4())
 
-        # --- Hash the given user password. ---
-        password = auth.hash_password(password)
-
         new_user = {
             "uid": uid,
             "username": username,
-            "password": password,
+            "passwordHash": passwordHash,
             "notificationToken": "",
             "messageQueue": [],
-            "userOnline": False,
         }
 
         try:
@@ -60,68 +56,69 @@ class DBManager():
             print(f"[DB-ERR] Error inserting new user in database {DB_NAME}:\n{e}")
             return False, "Error registering user..."
     
-    def login(self, username: str, password: str) -> bool:
+    def login(self, username: str, passwordHash: str) -> bool:
         query = {
             'username': username,
         }
 
         response = self.users.find_one(query)
-        if response and auth.verify_password(submitted_password=password, stored_password=response.get('password')):
+        if response and auth.verify_password(submitted_password=passwordHash, stored_password=response.get('passwordHash')):
             return True, response.get('uid')
         return False, 'Invalid username or password'
     
-    def addNotificationToken(self, uid, token) -> bool:
+    @get_user
+    def addNotificationToken(self, response: Dict, token) -> bool:
+        """
+        Registers a user's notification token.
+        Saves the token in the user's document in the database.
+        """
         
-        query = {
-            'uid': uid
-        }
+        response["notificationToken"] = token
+        self.users.update_one(filter={'uid': response.get('uid')}, update=response)
+        return True
 
-        try:
-            response = self.users.find_one(query)
-            if response:
-                response["notificationToken"] = token
-                self.users.update_one(filter=query, update=response)
-            else:
-                raise Error(f"[DB-ERR] User not found in database {DB_NAME} when adding notification token (?!?!)")
-            return True
-        except Exception as e:
-            print(e)
-            return False
+    @get_user
+    def getNotificationToken(self, response: Dict) -> str:
+        """
+        Returns the user's notification token.
+
+        If the user doesn't have a notification token stored in the system, raises an error.
+        """
+        
+        token = response.get("notificationToken")
+        if token:
+            return True, token
+        else:
+            raise Error(f"[DB-ERR] User {response.get('uid')} does not have a registered notification token")
     
-    def insertMessageQueue(self, uid: UUID, payload) -> bool:
-        print(f"[DB-DEBUG] Running message queue insertion for message: \n{payload}")
-        query = {
-            'uid': uid
-        }
-        try:
-            response = self.users.find_one(query)
-            if response:
-                response.get("messageQueue").append(payload)
-                self.users.update_one(filter=query, update={ '$set': response })
-                print(f"[DB-DEBUG] Message queue insertion complete.\nNew user data: {response}")
-            else:
-                raise Error(f"[DB-ERR] User not found in database {DB_NAME} when queueing message from server (?!?!)")
-            return True
-        except Exception as e:
-            print(e)
-            return False
+    def insertMessageQueue(self, user: Dict, message: Dict) -> bool:
+        """
+        Inserts a message into the user's message queue.
+        Used to cache messages to be sent to the user when they connect to the server.
+        
+        Returns:
+            bool: True if the message was successfully inserted, False otherwise.
+        """
+
+        print(f"[DB-DEBUG] Running message queue insertion for message: \n{message}")
+        response.get("messageQueue").append(message)
+        self.users.update_one(filter={'uid': uid}, update={ '$set': response })
+        print(f"[DB-DEBUG] Message queue insertion complete.\nNew user data: {response}")
+        return True
     
-    def dequeueMessageQueue(self, uid: UUID):
-        query = {
-            'uid': uid
-        }
-        try:
-            response = self.users.find_one(query)
-            if response:
-                queue = response.get("messageQueue")
-                response['messageQueue'] = []
-                self.users.update_one(filter=query, update={ '$set': response })
-                return queue
-            else:
-                raise Error(f"[DB-ERR] User not found in database {DB_NAME} when dequeuing message queue from server (?!?!)")
-        except Exception as e:
-            print(e)
-            return None
+    @get_user
+    def dequeueMessageQueue(self, response: Dict):
+        """
+        Flushes user message queue and before returning it.
+        
+        Used for when user connects to server, to retrieve any messages
+        that were sent while they were offline.
+        """
+
+        queue = response.get("messageQueue")
+        response['messageQueue'] = []
+        self.users.update_one(filter={'uid': response.get('uid')}, update={ '$set': response })
+        return queue
     
     def isValidUserID(self, uid: UUID) -> bool:
         user = self.users.find_one({
@@ -132,3 +129,20 @@ class DBManager():
             print(f'[DB-DBG] User ID {uid} is valid')
             return True
         return False
+
+def get_user(func):
+    def decorator(func):
+        def wrapper(self, uid: UUID, *args, **kwargs):
+            try:
+                response = self.users.find_one({
+                    'uid': uid
+                })
+                if not response:
+                    raise Error(f"[DB-ERR] User ID {uid} not found in database {DB_NAME} in call to {func.__name__}")
+            except Exception as e:
+                print(e)
+                return False, e
+            
+            return True, func(response, *args, **kwargs)
+        return wrapper
+    return decorator
