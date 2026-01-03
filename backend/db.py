@@ -1,6 +1,6 @@
-import pymongo
 from dotenv import load_dotenv
 import os
+from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 from uuid import UUID
 from typing import Dict
@@ -10,8 +10,6 @@ from functools import wraps
 from logger_config import logger
 
 load_dotenv()
-MONGO_URL = os.getenv("MONGO_URL")
-DB_NAME = os.getenv("PAGENT_DB_NAME")
 
 from logger_config import logger
 
@@ -30,12 +28,14 @@ def get_user(func):
 
 class DBManager():
     def __init__(self):
+        self.mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+        self.db_name = os.getenv("PAGENT_DB_NAME")
         try:
-            self.client = pymongo.MongoClient(MONGO_URL, uuidRepresentation='standard')
-            self.db = self.client[DB_NAME]
+            self.client = AsyncIOMotorClient(self.mongo_url, uuidRepresentation="standard")
+            self.db = self.client[self.db_name]
             self.users = self.db["users"]
             # self.db.drop_collection('users')
-            logger.info("db_initialized", db_name=DB_NAME)
+            logger.info("db_initialized", db_name=self.db_name)
 
         except Exception as e:
             logger.critical("db_init_failed", error=str(e))
