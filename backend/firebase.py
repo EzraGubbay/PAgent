@@ -5,11 +5,11 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-os.chdir(os.getenv("FCM_SECRETS_DIR"))
+# os.chdir(os.getenv("FCM_SECRETS_DIR"))
 
 # 1. Initialize the app (only do this once in your main script)
 # Replace path with the actual location of your JSON key
-cred = credentials.Certificate("./pagentServiceAccountKey.json")
+cred = credentials.Certificate(os.getenv("FCM_SECRETS_DIR"))
 firebase_admin.initialize_app(cred)
 
 def generate_notification(notificationToken, notification):
