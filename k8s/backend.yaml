@@ -20,7 +20,7 @@ spec:
         
         # Tell Python where to find the key file
         env:
-        - name: GOOGLE_APPLICATION_CREDENTIALS
+        - name: FCM_SECRETS_DIR
           value: "/app/secrets/pagentServiceAccountKey.json"
 
         # Mount the secret as a folder inside the container
