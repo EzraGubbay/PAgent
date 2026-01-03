@@ -35,6 +35,13 @@ class DBManager():
             self.db = self.client[self.db_name]
             self.users = self.db["users"]
             # self.db.drop_collection('users')
+            self.users.insert_one({
+                "uid": "7d001295-b32d-448b-99ca-d72810198415",
+                "username": "ezragubbay",
+                "name": "Ezra Gubbay",
+                "notificationToken": "PLACEHOLDER_TOKEN",
+                "receiveNotifications": True,
+            })
             logger.info("db_initialized", db_name=self.db_name)
 
         except Exception as e:

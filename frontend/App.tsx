@@ -14,15 +14,15 @@ import { MenuProvider } from 'react-native-popup-menu';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-  // AsyncStorage.getItem('@userData').then((data) => {
-  //   AsyncStorage.setItem('@userData', JSON.stringify({
-  //     uid: "PLACEHOLDER_UID",
-  //     username: "username",
-  //     name: "User Name",
-  //     notificationToken: "PLACEHOLDER_TOKEN",
-  //     receiveNotifications: true,
-  //   }));
-  // });
+  AsyncStorage.getItem('@userData').then((data) => {
+    AsyncStorage.setItem('@userData', JSON.stringify({
+      uid: "7d001295-b32d-448b-99ca-d72810198415",
+      username: "ezragubbay",
+      name: "Ezra Gubbay",
+      notificationToken: "PLACEHOLDER_TOKEN",
+      receiveNotifications: true,
+    }));
+  });
 
   // AsyncStorage.setItem('@chatHistory', JSON.stringify([]));
 
@@ -32,6 +32,7 @@ export default function App() {
 
   useEffect(() => {
     checkLoginStatus();
+    console.log(isAppLoading, isUserLoggedIn)
   }, []);
 
   const checkLoginStatus = async () => {
