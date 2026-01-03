@@ -33,7 +33,7 @@ class AuthManager:
         # Determine the path to token.json. 
         # Assuming token.json is in the backend/ directory (parent of gemini_tools_lib)
         # or in the current working directory.
-        token_path = "token.json"
+        token_path = os.getenv("GCAL_TOKEN_FILEPATH")
         if not os.path.exists(token_path):
             # Try looking in the parent directory if we are inside gemini_tools_lib context
             token_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "token.json")
