@@ -21,7 +21,7 @@ spec:
         # Tell Python where to find the key file
         env:
         - name: FCM_SECRETS_DIR
-          value: "/app/secrets/pagentServiceAccountKey.json"
+          value: "/app/secrets"
 
         # Mount the secret as a folder inside the container
         volumeMounts:
