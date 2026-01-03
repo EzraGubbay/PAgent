@@ -15,15 +15,15 @@ from logger_config import logger
 
 def get_user(func):
     @wraps(func)
-    def wrapper(self, uid: UUID, *args, **kwargs):
+    async def wrapper(self, uid: UUID, *args, **kwargs):
         struct_logger = logger.bind(func_call=func.__name__, user_id=str(uid))
-        response = self.users.find_one({
+        response = await self.users.find_one({
             'uid': uid
         })
         if not response:
             struct_logger.error("db_user_not_found")
         
-        return func(self, response, *args, **kwargs)
+        return await func(self, response, *args, **kwargs)
     return wrapper
 
 class DBManager():
@@ -40,7 +40,7 @@ class DBManager():
         except Exception as e:
             logger.critical("db_init_failed", error=str(e))
 
-    def create_user(self, username: str, passwordHash: str) -> bool:
+    async def create_user(self, username: str, passwordHash: str) -> bool:
         struct_logger = logger.bind(username=username)
         struct_logger.info("db_create_user_attempt")
 
@@ -78,7 +78,7 @@ class DBManager():
             struct_logger.error("db_create_user_insert_failed", error=str(e))
             return False, "Error registering user..."
     
-    def login(self, username: str, passwordHash: str) -> bool:
+    async def login(self, username: str, passwordHash: str) -> bool:
         struct_logger = logger.bind(username=username)
         struct_logger.info("db_login_attempt")
 
@@ -95,7 +95,7 @@ class DBManager():
         return False, 'Invalid username or password'
     
     @get_user
-    def addNotificationToken(self, response: Dict, token) -> bool:
+    async def addNotificationToken(self, response: Dict, token) -> bool:
         """
         Registers a user's notification token.
         Saves the token in the user's document in the database.
@@ -108,7 +108,7 @@ class DBManager():
         return True
 
     @get_user
-    def getNotificationToken(self, response: Dict) -> str:
+    async def getNotificationToken(self, response: Dict) -> str:
         """
         Returns the user's notification token.
 
@@ -122,7 +122,7 @@ class DBManager():
             logger.error("db_get_notification_token_missing", user_id=response.get('uid'))
             raise Error(f"[DB-ERR] User {response.get('uid')} does not have a registered notification token")
     
-    def insertMessageQueue(self, user: Dict, message: Dict) -> bool:
+    async def insertMessageQueue(self, user: Dict, message: Dict) -> bool:
         """
         Inserts a message into the user's message queue.
         Used to cache messages to be sent to the user when they connect to the server.
@@ -142,7 +142,7 @@ class DBManager():
         return True
     
     @get_user
-    def dequeueMessageQueue(self, response: Dict):
+    async def dequeueMessageQueue(self, response: Dict):
         """
         Flushes user message queue and before returning it.
         
@@ -160,7 +160,7 @@ class DBManager():
         self.users.update_one(filter={'uid': response.get('uid')}, update={ '$set': response })
         return queue
     
-    def isValidUserID(self, uid: UUID) -> bool:
+    async def isValidUserID(self, uid: UUID) -> bool:
         struct_logger = logger.bind(user_id=str(uid))
         user = self.users.find_one({
             'uid': uid
