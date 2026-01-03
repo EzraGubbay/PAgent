@@ -6,24 +6,23 @@ from uuid import UUID
 from typing import Dict
 from bson.binary import UuidRepresentation
 import auth
+from functools import wraps
 
 load_dotenv()
 MONGO_URL = os.getenv("MONGO_URL")
 DB_NAME = os.getenv("PAGENT_DB_NAME")
 
 def get_user(func):
+    @wraps(func)
     def wrapper(self, uid: UUID, *args, **kwargs):
-        try:
-            response = self.users.find_one({
-                'uid': uid
-            })
-            if not response:
-                raise Error(f"[DB-ERR] User ID {uid} not found in database {DB_NAME} in call to {func.__name__}")
-        except Exception as e:
-            print(e)
-            return False, e
+        response = self.users.find_one({
+            'uid': uid
+        })
+        if not response:
+            raise Error(f"[DB-ERR] User ID {uid} not found in database {DB_NAME} in call to {func.__name__}")
         
-        return True, func(response, *args, **kwargs)
+        return func(self, response, *args, **kwargs)
+    return wrapper
 
 class DBManager():
     def __init__(self):
