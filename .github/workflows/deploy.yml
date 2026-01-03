@@ -53,6 +53,7 @@ jobs:
 
       - name: Apply Kubernetes Manifests
         run: |
+          kubectl apply -f k8s/mongo.yaml
           kubectl apply -f k8s/infrastructure.yaml
           kubectl apply -f k8s/backend.yaml
 
