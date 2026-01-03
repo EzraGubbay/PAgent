@@ -52,7 +52,8 @@ combined = socketio.ASGIApp(sio, app)
 dbmanager = DBManager()
 
 # Global LLM Client
-llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
+# llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
+llm_client = None
 
 # ----- MIDDLEWARE -----
 

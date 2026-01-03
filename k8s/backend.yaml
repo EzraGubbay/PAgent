@@ -22,6 +22,8 @@ spec:
         env:
         - name: FCM_SECRETS_DIR
           value: "/app/secrets"
+        - name: MONGO_URL
+          value: "mongodb://pagent-mongo:27017"
 
         # Mount the secret as a folder inside the container
         volumeMounts:
