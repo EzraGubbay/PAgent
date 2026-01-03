@@ -3,7 +3,7 @@ google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
 google-genai
-lancedb==0.4.5
+lancedb==0.26.1
 pymongo
 motor
 python-dotenv
