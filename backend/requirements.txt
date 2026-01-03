@@ -17,3 +17,6 @@ pypdf
 pypdf2
 firebase-admin
 bcrypt
+structlog
+logtail-python
+asgi-correlation-id
