@@ -71,7 +71,7 @@ async def log_requests(request: Request, call_next):
         logger.error("http_request_error", error=str(e))
         raise e
 
-async def ws_middleware(sid):
+async def ws_middleware(sid, environ):
     session_id = str(uuid.uuid4())
     await sio.save_session(sid, {"correlation_id": session_id})
     structlog.contextvars.bind_contextvars(sid=sid, correlation_id=session_id)
@@ -160,7 +160,7 @@ async def connect(sid, environ, auth):
     """
 
     # Attach correlation ID to request headers
-    await ws_middleware(sid)
+    await ws_middleware(sid, environ)
 
     uid = auth.get("uid") if auth else None
     
