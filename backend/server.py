@@ -11,6 +11,14 @@ from llm_service import LLMClient
 from db import DBManager
 from firebase import generate_notification
 from data_types import MessageType
+import uuid
+from asgi_correlation_id import CorrelationIdMiddleware
+from logger_config import configure_logger, logger
+import structlog
+
+# ----- GLOBAL LOGGER -----
+
+configure_logger()
 
 # Load environment variables
 load_dotenv()
@@ -45,14 +53,6 @@ dbmanager = DBManager()
 
 # Global LLM Client
 llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
-
-# ----- GLOBAL LOGGER -----
-import uuid
-from asgi_correlation_id import CorrelationIdMiddleware
-from logger_config import configure_logger, logger
-import structlog
-
-configure_logger()
 
 # ----- MIDDLEWARE -----
 
