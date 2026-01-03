@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: mongo
-        image: mongo:6.0 # Official, stable image
+        image: mongo:4.4.18 # Official, stable image
         ports:
         - containerPort: 27017
         volumeMounts:
