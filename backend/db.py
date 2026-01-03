@@ -11,6 +11,23 @@ load_dotenv()
 MONGO_URL = os.getenv("MONGO_URL")
 DB_NAME = os.getenv("PAGENT_DB_NAME")
 
+def get_user(func):
+    def decorator(func):
+        def wrapper(self, uid: UUID, *args, **kwargs):
+            try:
+                response = self.users.find_one({
+                    'uid': uid
+                })
+                if not response:
+                    raise Error(f"[DB-ERR] User ID {uid} not found in database {DB_NAME} in call to {func.__name__}")
+            except Exception as e:
+                print(e)
+                return False, e
+            
+            return True, func(response, *args, **kwargs)
+        return wrapper
+    return decorator
+
 class DBManager():
     def __init__(self):
         try:
@@ -129,20 +146,3 @@ class DBManager():
             print(f'[DB-DBG] User ID {uid} is valid')
             return True
         return False
-
-def get_user(func):
-    def decorator(func):
-        def wrapper(self, uid: UUID, *args, **kwargs):
-            try:
-                response = self.users.find_one({
-                    'uid': uid
-                })
-                if not response:
-                    raise Error(f"[DB-ERR] User ID {uid} not found in database {DB_NAME} in call to {func.__name__}")
-            except Exception as e:
-                print(e)
-                return False, e
-            
-            return True, func(response, *args, **kwargs)
-        return wrapper
-    return decorator
