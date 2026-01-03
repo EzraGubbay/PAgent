@@ -51,15 +51,6 @@ jobs:
         uses: actions/checkout@v3
         # Checkout code to get k8s files
 
-      - name: Login to GHCR on Server
-        # Give server access to pull from repo
-        run: |
-          kubectl create secret docker-registry ghcr-secret \
-            --docker-server=ghcr.io \
-            --docker-username=${{ github.actor }} \
-            --docker-password=${{ secrets.GITHUB_TOKEN }} \
-            --dry-run=client -o yaml | kubectl apply -f -
-
       - name: Apply Kubernetes Manifests
         run: |
           kubectl apply -f k8s/infrastructure.yaml
