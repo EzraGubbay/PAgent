@@ -50,6 +50,7 @@ llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
 import uuid
 from asgi_correlation_id import CorrelationIdMiddleware
 from logger_config import configure_logger, logger
+import structlog
 
 configure_logger()
 

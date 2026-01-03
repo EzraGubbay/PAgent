@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 FCM_SECRETS_DIR = os.getenv("FCM_SECRETS_DIR")
-SERVICE_ACCOUNT_KEY = os.path.join(FCM_SECRETS_DIR, "pagentServiceAccountKey.json")
+SERVICE_ACCOUNT_KEY = os.path.join(FCM_SECRETS_DIR)
 
 # 1. Initialize the app (only do this once in your main script)
 # Replace path with the actual location of your JSON key
