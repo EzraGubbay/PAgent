@@ -36,8 +36,11 @@ spec:
             name: app-secrets
         resources:
           limits:
-            memory: "2Gi"
-            cpu: "500m"
+            memory: "1Gi"
+            cpu: "1000m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
       
       # Define the Volume using the K8s Secret
       volumes:
