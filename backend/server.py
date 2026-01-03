@@ -100,7 +100,7 @@ def validate_socket_model(model_class):
         return wrapper
     return decorator
 
-def notify(uid: str, response: str):
+async def notify(uid: str, response: str):
     """
     Sends a notification to the user.
     """

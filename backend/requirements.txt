@@ -8,6 +8,7 @@ pymongo
 motor
 python-dotenv
 fastapi
+python-multipart
 uvicorn[standard]
 gunicorn
 python-socketio
