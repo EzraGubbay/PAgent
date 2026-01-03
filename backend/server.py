@@ -137,7 +137,7 @@ async def notify(uid: str, response: str):
     """
 
     # Get notification token from database
-    notificationToken = await run_in_threadpool(dbmanager.getNotificationToken, uid)
+    notificationToken = await dbmanager.getNotificationToken(uid)
 
     # Construct notification payload
     notification = {
@@ -171,7 +171,7 @@ async def connect(sid, environ, auth):
         await sio.enter_room(sid, uid)
         struct_logger.info("ws_connected")
 
-        message_queue = await run_in_threadpool(dbmanager.dequeueMessageQueue, uid)
+        message_queue = await dbmanager.dequeueMessageQueue(uid)
         if message_queue:
             struct_logger.info("ws_flushing_queue", count=len(message_queue))
             for payload in message_queue:
@@ -197,7 +197,7 @@ async def registerUser(data: AuthPayload):
     struct_logger = logger.bind(username=username)
     struct_logger.info("http_register_user_attempt")
     
-    status, response = await run_in_threadpool(dbmanager.create_user, username=username, password=passwordHash)
+    status, response = await dbmanager.create_user(username=username, password=passwordHash)
     
     if status is False:
         struct_logger.error("http_register_user_failed", error=response)
@@ -216,7 +216,7 @@ async def login(data: AuthPayload):
     struct_logger = logger.bind(username=username)
     struct_logger.info("http_login_attempt")
 
-    status, response = await run_in_threadpool(dbmanager.login, username=username, passwordHash=passwordHash)
+    status, response = await dbmanager.login(username=username, passwordHash=passwordHash)
 
     if status:
          struct_logger.info("http_login_success", user_id=response)
@@ -310,7 +310,7 @@ async def process_llm_request(req: SendMessageRequest):
         struct_logger.info("llm_response_delivered_ws")
     else:
         # If user is not connected, insert response into message queue and send notification.
-        status, response = await run_in_threadpool(dbmanager.insertMessageQueue, uid=uid, message=response)
+        status, response = await dbmanager.insertMessageQueue(uid=uid, message=response)
         struct_logger.info("llm_response_queued")
         if not status:
             raise HTTPException(status_code=500, detail="Failed to insert message queue")
@@ -333,7 +333,7 @@ async def upload_file_object(
     # ----- SECURITY CHECKS ----- 
     
     # Ensure user exists and UID is
-    if not await run_in_threadpool(dbmanager.isValidUserID, uid):
+    if not await dbmanager.isValidUserID(uid):
         raise HTTPException(status_code=400, detail="Invalid user ID")
 
     # Ensure safe filename to prevent directory traversal attacks
@@ -365,7 +365,7 @@ async def delete_file_object(
     # ----- SECURITY CHECKS ----- 
     
     # Ensure user exists and UID is
-    if not await run_in_threadpool(dbmanager.isValidUserID, uid):
+    if not await dbmanager.isValidUserID(uid):
         raise HTTPException(status_code=401, detail="Authentication Error: Invalid user ID")
 
     # Ensure safe filename to prevent directory traversal attacks
@@ -389,7 +389,7 @@ async def load_new_chat(req: ResetChatRequest):
     """
 
     uid = req.uid
-    if not await run_in_threadpool(dbmanager.isValidUserID, uid):
+    if not await dbmanager.isValidUserID(uid):
         raise HTTPException(status_code=401, detail="Authentication Error: Invalid user ID")
 
     await run_in_threadpool(llm_client.clear_history, req.uid)
@@ -401,7 +401,7 @@ async def register_notification_token(sid, req: RegisterNotificationTokenRequest
     """
     Registers a user's notification token.
     """
-    response = await run_in_threadpool(dbmanager.addNotificationToken, req.uid, req.token)
+    response = await dbmanager.addNotificationToken(req.uid, req.token)
     await sio.emit(
         'notificationTokenRegistrationResponse', 
         {
