@@ -16,10 +16,6 @@ from asgi_correlation_id import CorrelationIdMiddleware
 from logger_config import configure_logger, logger
 import structlog
 
-# ----- GLOBAL LOGGER -----
-
-configure_logger()
-
 # Load environment variables
 load_dotenv()
 LLM_MODEL = os.getenv("LLM_MODEL")
@@ -27,6 +23,10 @@ CHAT_SIZE_LIMIT = os.getenv("CHAT_SIZE_LIMIT")
 APP_IDENTIFIER = os.getenv("APP_IDENTIFIER")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/temp_storage")
+
+# ----- GLOBAL LOGGER -----
+
+configure_logger()
 
 # ----- SETUP & INFRASTRUCTURE -----
 

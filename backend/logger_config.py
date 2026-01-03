@@ -19,6 +19,8 @@ def configure_logger():
     # Setup Cloud Handler (with Better Stack)
     better_stack_token = os.getenv("BETTER_STACK_TOKEN")
     handlers = []
+    
+    handlers.append(logging.StreamHandler())
 
     if better_stack_token:
         # For production: Send JSON logs to the Cloud
@@ -28,7 +30,6 @@ def configure_logger():
         processors.append(structlog.processors.JSONRenderer())
     else:
         # For local development: Print pretty console logs
-        handles.append(logging.StreamHandler())
         processors.append(structlog.dev.ConsoleRenderer())
 
     logging.basicConfig(handlers=handlers, level=logging.INFO, format="%(message)s")
