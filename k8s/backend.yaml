@@ -14,13 +14,23 @@ spec:
     spec:
       containers:
       - name: backend
-        # IMPORTANT: Ensure this matches the image name in GitHub (Lowercase!)
         image: ghcr.io/ezragubbay/pagent-backend:latest
         ports:
         - containerPort: 8000
+        
+        # Tell Python where to find the key file
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: "/app/secrets/pagentServiceAccountKey.json"
+
+        # Mount the secret as a folder inside the container
         volumeMounts:
         - mountPath: "/app/storage/temp_storage"
           name: uploads-volume
+        - mountPath: "/app/secrets"  # This folder will be created automatically
+          name: firebase-secret-vol
+          readOnly: true             # Security best practice
+
         envFrom:
         - secretRef:
             name: app-secrets
@@ -28,10 +38,16 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+      
+      # Define the Volume using the K8s Secret
       volumes:
       - name: uploads-volume
         persistentVolumeClaim:
           claimName: uploads-pvc
+      - name: firebase-secret-vol
+        secret:
+          secretName: firebase-secret 
+
       imagePullSecrets:
       - name: ghcr-secret
 ---
@@ -40,11 +56,10 @@ kind: Service
 metadata:
   name: pagent-backend
 spec:
-  # CHANGED to NodePort so Cloudflare (running on host) can reach it easily
   type: NodePort
   selector:
     app: pagent
   ports:
     - port: 8000
       targetPort: 8000
-      nodePort: 30080 # We fix this port so we know where to point Cloudflare
+      nodePort: 30080
