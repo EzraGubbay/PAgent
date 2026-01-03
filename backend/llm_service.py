@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from typing import List, Dict
 from gemini_tools_lib import GEMINI_TOOLS, GeminiToolHandler, AuthManager
 from vdb import VDBManager
+from logger_config import logger
 
 load_dotenv()
 LLM_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -89,13 +90,16 @@ class LLMClient():
         self.chat_message_len = 0
 
     def sendMessage(self, prompt: str, attachments: List[Dict[str, str]]=None) -> str:
+        struct_logger = logger.bind(func_call="sendMessage")
+        struct_logger.info("llm_request_received", has_attachments=bool(attachments))
+
         parts = []
         if prompt:
             parts.append(types.Part.from_text(text=prompt))
 
             filepaths = self.vdbmanager.vdb_search(prompt)
             for filepath in filepaths:
-                print(f'[LLM-DBG] Received vector from RAG search: {filepath}')
+                struct_logger.debug("llm_rag_vector_found", filepath=filepath)
 
                 if os.path.exists(filepath):
                     with open(filepath, 'rb') as file:
@@ -129,13 +133,13 @@ class LLMClient():
         }
 
         while response.function_calls:
-            print(f"🤖 Model requested {len(response.function_calls)} tool(s)")
+            struct_logger.info("llm_tool_calls_requested", count=len(response.function_calls))
             
             # We must collect ALL responses for this turn into a list of parts
             response_parts = []
 
             for tool_call in response.function_calls:
-                print(f"  > Executing: {tool_call.name}")
+                struct_logger.info("llm_executing_tool", tool_name=tool_call.name, args=tool_call.args)
                 
                 # Execute the tool
                 result = self.tool_handler.handle_tool_call(
@@ -146,7 +150,7 @@ class LLMClient():
                 # if "error" in result:
                 #     status['status_code'] = False
                 #     status['errors'].append(result['error'])
-                print(result)
+                struct_logger.debug("llm_tool_result", result=result)
 
                 # CHANGE 3: Create correct SDK Objects (Part -> FunctionResponse)
                 # We wrap the result in a strongly typed FunctionResponse
@@ -162,13 +166,10 @@ class LLMClient():
             # This satisfies the model's need to see results for all tools it requested
             response = self.chat.send_message(response_parts)
         
-        if status:
-            print(f"[LLM-SUCCESS] LLM reported successful task completion for user")
+        if status['status_code']:
+            struct_logger.info("llm_turn_complete")
         else:
-            print(f"[LLM-FAIL] LLM reported successful task completion for user")
-            print("Received Errors:")
-            for error in status["errors"]:
-                print(error, "\n")
+            struct_logger.error("llm_turn_failed", errors=status["errors"])
 
         self.chat_message_len += 1
         return response.text

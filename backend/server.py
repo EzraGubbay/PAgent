@@ -46,6 +46,37 @@ dbmanager = DBManager()
 # Global LLM Client
 llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
 
+# ----- GLOBAL LOGGER -----
+import uuid
+from asgi_correlation_id import CorrelationIdMiddleware
+from logger_config import configure_logger, logger
+
+configure_logger()
+
+# ----- MIDDLEWARE -----
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid,uuid4()))
+    structlog.contextvars.bind_contextvars(request_id=request_id)
+
+    logger.info("http_request_start", path=request.url.path, method=request.method)
+
+    try:
+        response = await call_next(request)
+        logger.info("http_request_end", status=response.status_code)
+        return response
+    except Exception as e:
+        logger.error("http_request_error", error=str(e))
+        raise e
+
+async def ws_middleware(sid):
+    session_id = str(uuid.uuid4())
+    await sio.save_session(sid, {"correlation_id": session_id})
+    structlog.contextvars.bind_contextvars(sid=sid, correlation_id=session_id)
+
+    logger.info("websocker_connected", user_agent=environ.get("HTTP_USER_AGENT"))
+
 # ----- DATA MODELS -----
 
 class AuthPayload(BaseModel):
@@ -76,7 +107,7 @@ async def is_user_connected(uid: str):
         participants = await sio.manager.get_participants(namespace='/', room=uid)
         return True if participants else False
     except Exception as e:
-        print(f"[WARN] Failed to check user connection status: {e}")
+        logger.warn("redis_check_failed", error=str(e), uid=uid)
         return False
 
 def validate_socket_model(model_class):
@@ -85,9 +116,7 @@ def validate_socket_model(model_class):
             try:
                 obj = model_class(**data)
             except ValidationError as e:
-                print("[ERROR] Invalid Data:")
-                print(f"Data Received: {data}")
-                print(f"Validation Error: {e}")
+                logger.error("ws_validation_error", data=data, error=str(e), sid=sid)
                 response = {
                     'message': 'Validation Error 422: Invalid Request Data',
                     'type': MessageType.System
@@ -129,18 +158,24 @@ async def connect(sid, environ, auth):
     Handles new connections to the server.
     """
 
+    # Attach correlation ID to request headers
+    await ws_middleware(sid)
+
     uid = auth.get("uid") if auth else None
+    
+    struct_logger = logger.bind(sid=sid, user_id=str(uid) if uid else "anonymous")
+    
     if uid:
         await sio.enter_room(sid, uid)
-        print(f"[CONNECT] SID: {sid} | UID: {uid}")
+        struct_logger.info("ws_connected")
 
         message_queue = await run_in_threadpool(dbmanager.dequeueMessageQueue, uid)
         if message_queue:
-            print(f"[MESSAGE-QUEUE] Flushing {len(message_queue)} messages to user: {uid}")
+            struct_logger.info("ws_flushing_queue", count=len(message_queue))
             for payload in message_queue:
                 await sio.emit('llm_response', {'status': 'success', 'response': payload}, room=uid)
     else:
-        print(f"[CONNECT-ANON] Anonymous connection @ {sid} (Waiting for Login)")
+        struct_logger.info("ws_connected_anonymous")
     
 @sio.event
 async def disconnect(sid):
@@ -149,7 +184,7 @@ async def disconnect(sid):
     Removal of user from Redis and database is handled automatically by Socket.IO.
     """
 
-    print(f"[DISCONNECT] SID: {sid}")
+    logger.info("ws_disconnected", sid=sid)
 
 @app.post('/registerUser')
 async def registerUser(data: AuthPayload):
@@ -157,10 +192,13 @@ async def registerUser(data: AuthPayload):
     Handles new user registration.
     """
 
-    username = data.get("username")
-    passwordHash = data.get("passwordHash")
+    struct_logger = logger.bind(username=username)
+    struct_logger.info("http_register_user_attempt")
     
     status, response = await run_in_threadpool(dbmanager.create_user, username=username, password=passwordHash)
+    
+    if status is False:
+        struct_logger.error("http_register_user_failed", error=response)
 
     return {'status': 'success' if status else 'error', 'response': response}
 
@@ -173,7 +211,15 @@ async def login(data: AuthPayload):
     username = data.username
     passwordHash = data.passwordHash
 
+    struct_logger = logger.bind(username=username)
+    struct_logger.info("http_login_attempt")
+
     status, response = await run_in_threadpool(dbmanager.login, username=username, passwordHash=passwordHash)
+
+    if status:
+         struct_logger.info("http_login_success", user_id=response)
+    else:
+         struct_logger.warn("http_login_failed", reason=response)
 
     return {'status': 'success' if status else 'error', 'response': response}
 
@@ -188,6 +234,9 @@ async def sendMessage(sid, req):
 
     Standard API method for in-app communication with user.
     """
+    struct_logger = logger.bind(func_call="sendMessage_ws", sid=sid, user_id=req.uid)
+    struct_logger.info("ws_message_received")
+    
     sio.emit('llm_processing', {'status': 'success', 'response': 'Thinking...'}, room=req.uid)
     await process_llm_request(req)
 
@@ -199,6 +248,9 @@ async def sendMessage(req: SendMessageRequest, background_tasks: BackgroundTasks
 
     Used for when user replies to LLM from outside the app, e.g. through push notification.
     """
+    struct_logger = logger.bind(func_call="sendMessage_http", user_id=req.uid)
+    struct_logger.info("http_message_received")
+    
     background_tasks.add_task(process_llm_request, req)
     return {'status': 'success'}
 
@@ -226,7 +278,8 @@ async def process_llm_request(req: SendMessageRequest):
             })
 
     # Use asynchronous LLMClient
-    print(f"[LLM-START] Processing LLM request for user {uid}")
+    struct_logger = logger.bind(user_id=uid)
+    struct_logger.info("llm_processing_start")
     message = await run_in_threadpool(
         llm_client.sendMessage,
         uid,
@@ -243,18 +296,20 @@ async def process_llm_request(req: SendMessageRequest):
     if os.path.exists(user_dir):
         try:
             shutil.rmtree(user_dir)
-            print(f"[USERDIR-CLEANUP] Cleaned temporary user upload files for {uid}")
+            struct_logger.debug("user_upload_cleanup_success")
         except Exception as e:
-            print(f"[USERDIR-ERR] Error cleaning temporary user upload files for {uid}:\n{e}")
+            struct_logger.error("user_upload_cleanup_failed", error=str(e))
 
     # --- DELIVERY ---
 
     if await is_user_connected(uid):
         # If user is connected, emit response directly to user.
         await sio.emit('llm_response', {"response": response}, room=uid)
+        struct_logger.info("llm_response_delivered_ws")
     else:
         # If user is not connected, insert response into message queue and send notification.
         status, response = await run_in_threadpool(dbmanager.insertMessageQueue, uid=uid, message=response)
+        struct_logger.info("llm_response_queued")
         if not status:
             raise HTTPException(status_code=500, detail="Failed to insert message queue")
         
@@ -291,6 +346,8 @@ async def upload_file_object(
     # Stream file to disk
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    
+    logger.info("file_upload_success", user_id=uid, filename=safe_filename)
 
     return {'status': 'success', 'filename': safe_filename}
 
@@ -318,6 +375,7 @@ async def delete_file_object(
     # Check if file exists
     if os.path.exists(file_path):
         os.remove(file_path)
+        logger.info("file_delete_success", user_id=uid, filename=safe_filename)
         return {'status': 'success', 'filename': safe_filename}
     else:
         raise HTTPException(status_code=404, detail="File not found")
