@@ -13,6 +13,7 @@ services:
     volumes:
       - ./backend:/app
       - ./backend/storage:/app/storage
+      - ./backend/secrets/pagentServiceAccountKey.json:/app/secrets/pagentServiceAccountKey.json:ro
     ports:
       - "8000:8000"
     
@@ -27,6 +28,9 @@ services:
 
     # Uvicorn && reload flag for hot reloading during development
     command: uvicorn server:combined --host 0.0.0.0 --port 8000 --reload
+
+    environment:
+      - FCM_SECRETS_DIR=/app/secrets/pagentServiceAccountKey.json
 
 networks:
   dev-network:
