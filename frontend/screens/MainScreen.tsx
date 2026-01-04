@@ -32,7 +32,7 @@ import * as FileSystem from "expo-file-system";
 
 const Stack = createNativeStackNavigator();
 
-const SOCKET_URL = "https://notifications.ezragubbay.com";
+import { SOCKET_URL } from "../config";
 
 export default function MainScreen({ navigation }: { navigation: any }) {
 

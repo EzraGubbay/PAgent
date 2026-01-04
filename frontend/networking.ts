@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loadUserData } from "./types/data";
+import { API_URL } from "./config";
 
 export class ServerSideError extends Error {
     constructor(message: string) {
@@ -10,7 +11,7 @@ export class ServerSideError extends Error {
 
 export const connect = async () => {
     const userData = await loadUserData();
-    const response = await fetch("https://notifications.ezragubbay.com/connect", {
+    const response = await fetch(`${API_URL}/connect`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -31,7 +32,7 @@ export const connect = async () => {
 
 export const login = async (username: string, passhash: string) => {
     const userData = await loadUserData();
-    const response = await fetch("https://notifications.ezragubbay.com/login", {
+    const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -60,7 +61,7 @@ export interface Attachment {
 
 export const sendMessage = async (data: { uid: string, prompt: string, notificationToken: string, notify: boolean, attachments?: Attachment[] }) => {
     console.log("Sending message:", data);
-    const response = await fetch("https://notifications.ezragubbay.com/sendMessage", {
+    const response = await fetch(`${API_URL}/sendMessage`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -83,7 +84,7 @@ export const sendMessage = async (data: { uid: string, prompt: string, notificat
 export const remoteEraseAssistantChat = async () => {
     const userData = await loadUserData();
     console.log("Erasing assistant chat for user:", userData);
-    const response = await fetch("https://notifications.ezragubbay.com/loadNewChat", {
+    const response = await fetch(`${API_URL}/loadNewChat`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
