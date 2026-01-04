@@ -30,6 +30,7 @@ def get_user(func):
         })
         if not response:
             struct_logger.error("db_user_not_found")
+            return False, "User not found"
         
         return await func(self, response, *args, **kwargs)
     return wrapper
@@ -78,7 +79,7 @@ class DBManager():
 
         try:
             # If user is successfully inserted, return True and the user's UUID
-            self.users.insert_one({
+            await self.users.insert_one({
                 "uid": new_user.uid,
                 "username": new_user.username,
                 "passwordHash": new_user.passwordHash,
@@ -175,7 +176,7 @@ class DBManager():
     
     async def isValidUserID(self, uid: UUID) -> bool:
         struct_logger = logger.bind(user_id=str(uid))
-        user = self.users.find_one({
+        user = await self.users.find_one({
             'uid': uid
         })
 
