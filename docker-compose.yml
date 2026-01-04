@@ -23,6 +23,7 @@ services:
 
     depends_on:
       - redis
+      - mongo
     networks:
       - dev-network
 
