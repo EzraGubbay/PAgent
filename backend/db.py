@@ -3,7 +3,7 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 from uuid import UUID
-from typing import Dict
+from typing import Dict, List
 from bson.binary import UuidRepresentation
 import auth
 from functools import wraps
@@ -12,6 +12,14 @@ from logger_config import logger
 load_dotenv()
 
 from logger_config import logger
+
+class User:
+    uid: UUID
+    username: str
+    passwordHash: bytes
+    notificationToken: str
+    messageQueue: List[Dict]
+
 
 def get_user(func):
     @wraps(func)
@@ -34,14 +42,6 @@ class DBManager():
             self.client = AsyncIOMotorClient(self.mongo_url, uuidRepresentation="standard")
             self.db = self.client[self.db_name]
             self.users = self.db["users"]
-            # self.db.drop_collection('users')
-            self.users.insert_one({
-                "uid": "7d001295-b32d-448b-99ca-d72810198415",
-                "username": "ezragubbay",
-                "name": "Ezra Gubbay",
-                "notificationToken": "PLACEHOLDER_TOKEN",
-                "receiveNotifications": True,
-            })
             logger.info("db_initialized", db_name=self.db_name)
 
         except Exception as e:
@@ -68,17 +68,23 @@ class DBManager():
         uid = str(uuid.uuid4())
         struct_logger = struct_logger.bind(user_id=uid)
 
-        new_user = {
-            "uid": uid,
-            "username": username,
-            "passwordHash": passwordHash,
-            "notificationToken": "",
-            "messageQueue": [],
-        }
+        new_user: User = User(
+            uid=uid,
+            username=username,
+            passwordHash=passwordHash.encode('utf-8'),
+            notificationToken="",
+            messageQueue=[],
+        )
 
         try:
             # If user is successfully inserted, return True and the user's UUID
-            self.users.insert_one(new_user)
+            self.users.insert_one({
+                "uid": new_user.uid,
+                "username": new_user.username,
+                "passwordHash": new_user.passwordHash,
+                "notificationToken": new_user.notificationToken,
+                "messageQueue": new_user.messageQueue,
+            })
             struct_logger.info("db_create_user_success")
             return True, uid
         except Exception as e:

@@ -57,7 +57,7 @@ llm_client = None
 @app.on_event("startup")
 async def startup():
     global llm_client, dbmanager
-    # llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
+    llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
     dbmanager = DBManager()
 
 
