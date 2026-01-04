@@ -24,3 +24,4 @@ backend/temp_storage/
 backend/.pytest_cache/
 backend/.coverage
 backend/secrets/
+backend/temp*
