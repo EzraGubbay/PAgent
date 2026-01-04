@@ -1,0 +1,10 @@
+export const DEBUG_MODE = false;
+
+const LOCAL_IP = ""; // Your machine's local IP
+const LOCAL_PORT = "";
+
+const PROD_API_URL = "";
+const LOCAL_API_URL = `http://${LOCAL_IP}:${LOCAL_PORT}`;
+
+export const API_URL = DEBUG_MODE ? LOCAL_API_URL : PROD_API_URL;
+export const SOCKET_URL = DEBUG_MODE ? LOCAL_API_URL : PROD_API_URL;
