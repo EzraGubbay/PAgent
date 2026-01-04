@@ -7,6 +7,8 @@ from typing import List, Dict
 from gemini_tools_lib import GEMINI_TOOLS, GeminiToolHandler, AuthManager
 from vdb import VDBManager
 from logger_config import logger
+from uuid import UUID
+from logger_config import logger
 
 load_dotenv()
 LLM_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -64,7 +66,7 @@ each task you perform.
 
 # TODO: LLM Client should manage a chat per user, accessed via active chat identifier in user data.
 class LLMClient():
-    def __init__(self, model=LLM_MODEL, chat_size_limit=100):
+    def __init__(self, model: str=LLM_MODEL, chat_size_limit: int=100):
 
         self.auth_manager = AuthManager(todoist_token=TODOIST_API_KEY)
         self.tool_handler = GeminiToolHandler(self.auth_manager)
@@ -89,7 +91,9 @@ class LLMClient():
         self.chat_size_limit = chat_size_limit
         self.chat_message_len = 0
 
-    def sendMessage(self, prompt: str, attachments: List[Dict[str, str]]=None) -> str:
+    def sendMessage(self, uid: UUID, prompt: str, attachments: List[Dict[str, str]]=None) -> str:
+        struct_logger = logger.bind(func_call="sendMessage")
+        struct_logger.info("llm_request_received", has_attachments=bool(attachments))
         struct_logger = logger.bind(func_call="sendMessage")
         struct_logger.info("llm_request_received", has_attachments=bool(attachments))
 

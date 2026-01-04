@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
-from redis import asyncio as redis
+from redis import asyncio as aioredis
 
 from llm_service import LLMClient
 from db import DBManager
@@ -51,12 +51,13 @@ combined = socketio.ASGIApp(sio, app)
 # Initialize DB Manager & LLM Client
 dbmanager = None
 llm_client = None
+redis = aioredis.from_url(REDIS_URL, decode_responses=True)
 
 # ----- APP STARTUP -----
 
 @app.on_event("startup")
 async def startup():
-    global llm_client, dbmanager
+    global llm_client, dbmanager, redis
     llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
     dbmanager = DBManager()
 
@@ -111,8 +112,8 @@ async def is_user_connected(uid: str):
 
     # Check if room user:{uid} has any participants
     try:
-        participants = await sio.manager.get_participants(namespace='/', room=uid)
-        return True if participants else False
+        is_online = await redis.exists(f"user_online:{uid}")
+        return True if is_online else False
     except Exception as e:
         logger.warn("redis_check_failed", error=str(e), uid=uid)
         return False
@@ -170,9 +171,18 @@ async def connect(sid, environ, auth):
 
     uid = auth.get("uid") if auth else None
     
-    struct_logger = logger.bind(sid=sid, user_id=str(uid) if uid else "anonymous")
+    if not uid:
+        await redis.set(f"ws_session:{sid}", "anonymous")
+        struct_logger = logger.bind(sid=sid, user_id="anonymous")
+        struct_logger.info("ws_connected_anonymous")
+        return
     
-    if uid:
+    struct_logger = logger.bind(sid=sid, user_id=str(uid))
+    
+    if await dbmanager.isValidUserID(uid):
+        # Store session mapping and online status
+        await redis.set(f"ws_session:{sid}", str(uid))
+        await redis.set(f"user_online:{uid}", "true")
         await sio.enter_room(sid, uid)
         struct_logger.info("ws_connected")
 
@@ -192,6 +202,17 @@ async def disconnect(sid):
     """
 
     logger.info("ws_disconnected", sid=sid)
+
+    # Retrieve UID from session mapping
+    uid = await redis.get(f"ws_session:{sid}")
+    
+    if uid and uid != "anonymous":
+        await redis.delete(f"user_online:{uid}")
+    
+    # Always clean up session
+    await redis.delete(f"ws_session:{sid}")
+    
+    logger.info("ws_disconnected_cleanup_complete", sid=sid, user_id=uid)
 
 @app.post('/registerUser')
 async def registerUser(data: AuthPayload):
