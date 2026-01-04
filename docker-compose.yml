@@ -6,6 +6,13 @@ services:
       - "6379:6379"
     networks:
       - dev-network
+
+  mongo:
+    image: mongo:4.4.18
+    ports:
+      - "27017:27017"
+    networks:
+      - dev-network
   
   backend:
     build: ./backend
