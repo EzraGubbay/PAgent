@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, sys
 import socketio
 from typing import List, Union, Dict
 from fastapi import FastAPI, Request, BackgroundTasks, HTTPException, UploadFile, File, Form
@@ -27,6 +27,20 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/temp_storage")
 # ----- GLOBAL LOGGER -----
 
 configure_logger()
+
+# ----- GLOBAL EXCEPTION HANDLER -----
+
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """
+    Catch-all for any exceptions that escape the FastAPI application (e.g. startup errors).
+    """
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.error("system_crash", exc_info=(exc_type, exc_value, exc_traceback))
+
+sys.excepthook = global_exception_handler
 
 # ----- SETUP & INFRASTRUCTURE -----
 
@@ -74,9 +88,9 @@ async def log_requests(request: Request, call_next):
         response = await call_next(request)
         logger.info("http_request_end", status=response.status_code)
         return response
-    except Exception as e:
-        logger.error("http_request_error", error=str(e))
-        raise e
+    except Exception:
+        logger.exception("http_request_error")
+        raise
 
 async def ws_middleware(sid, environ):
     session_id = str(uuid.uuid4())
