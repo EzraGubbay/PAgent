@@ -19,7 +19,7 @@ import structlog
 # Load environment variables
 load_dotenv()
 LLM_MODEL = os.getenv("LLM_MODEL")
-CHAT_SIZE_LIMIT = os.getenv("CHAT_SIZE_LIMIT")
+CHAT_SIZE_LIMIT = int(os.getenv("CHAT_SIZE_LIMIT"))
 APP_IDENTIFIER = os.getenv("APP_IDENTIFIER")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/temp_storage")
@@ -83,7 +83,7 @@ async def ws_middleware(sid, environ):
     await sio.save_session(sid, {"correlation_id": session_id})
     structlog.contextvars.bind_contextvars(sid=sid, correlation_id=session_id)
 
-    logger.info("websocker_connected", user_agent=environ.get("HTTP_USER_AGENT"))
+    logger.info("websocket_connected", user_agent=environ.get("HTTP_USER_AGENT"))
 
 # ----- DATA MODELS -----
 
