@@ -48,12 +48,18 @@ app = FastAPI()
 # Combine ASGI app and FastAPI app for Gunicorn service
 combined = socketio.ASGIApp(sio, app)
 
-# Initialize DB
-dbmanager = DBManager()
-
-# Global LLM Client
-# llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
+# Initialize DB Manager & LLM Client
+dbmanager = None
 llm_client = None
+
+# ----- APP STARTUP -----
+
+@app.on_event("startup")
+async def startup():
+    global llm_client, dbmanager
+    # llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
+    dbmanager = DBManager()
+
 
 # ----- MIDDLEWARE -----
 
