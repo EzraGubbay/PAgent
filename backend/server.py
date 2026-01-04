@@ -60,12 +60,11 @@ async def startup():
     llm_client = LLMClient(model=LLM_MODEL, chat_size_limit=CHAT_SIZE_LIMIT)
     dbmanager = DBManager()
 
-
 # ----- MIDDLEWARE -----
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    request_id = request.headers.get("X-Request-ID", str(uuid,uuid4()))
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     structlog.contextvars.bind_contextvars(request_id=request_id)
 
     logger.info("http_request_start", path=request.url.path, method=request.method)
