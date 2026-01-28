@@ -30,4 +30,4 @@ COPY --chown=pagentuser:pagentuser . .
 EXPOSE 8000
 
 # Run app using gunicorn
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--bind", "0.0.0.0:8000", "server:combined"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--bind", "0.0.0.0:8000", "app.main:combined"]

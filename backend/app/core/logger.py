@@ -2,6 +2,7 @@ import os
 import structlog
 import logging
 from logtail import LogtailHandler
+from app.core.config import BETTER_STACK_HOST, BETTER_STACK_TOKEN
 
 def configure_logger():
     """
@@ -17,15 +18,13 @@ def configure_logger():
     ]
 
     # Setup Cloud Handler (with Better Stack)
-    better_stack_token = os.getenv("BETTER_STACK_TOKEN")
-    better_stack_host = os.getenv("BETTER_STACK_HOST")
     handlers = []
     
     handlers.append(logging.StreamHandler())
 
-    if better_stack_token:
+    if BETTER_STACK_TOKEN:
         # For production: Send JSON logs to the Cloud
-        logtail_handler = LogtailHandler(source_token=better_stack_token, host=better_stack_host)
+        logtail_handler = LogtailHandler(source_token=BETTER_STACK_TOKEN, host=BETTER_STACK_HOST)
         logtail_handler.setFormatter(logging.Formatter("%(message)s"))
         handlers.append(logtail_handler)
         processors.append(structlog.stdlib.render_to_log_kwargs)

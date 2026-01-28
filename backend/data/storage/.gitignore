@@ -1,0 +1,6 @@
+/**
+Ignore all files that aren't .gitignore.
+Prevents committing local data produced for development to the repo.
+ */
+
+!.gitignore

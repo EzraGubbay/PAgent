@@ -1,13 +1,9 @@
 import lancedb
 from pypdf import PdfReader
 import os
-from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-load_dotenv()
-
-STORAGE_PATH = os.getenv('STORAGE_PATH')
-VDB_DEST = os.getenv('VDB_DEST')
+from app.core.config import STORAGE_PATH, VDB_DEST
 
 class VDBManager():
     def __init__(self, llmclient, destination: str=VDB_DEST):

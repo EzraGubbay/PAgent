@@ -2,22 +2,15 @@ import os
 from google import genai
 from google.genai import types
 import base64
-from dotenv import load_dotenv
 from typing import List, Dict
-from gemini_tools_lib import GEMINI_TOOLS, GeminiToolHandler, AuthManager
-from vdb import VDBManager
-from logger_config import logger
+from app.services.tools.handler import GEMINI_TOOLS, GeminiToolHandler, AuthManager
+from app.services.vdb import VDBManager
 from uuid import UUID
-from logger_config import logger
+from app.core.logger import logger
+from app.core.config import GEMINI_API_KEY, TODOIST_API_KEY, LLM_MODEL
 
-load_dotenv()
-LLM_API_KEY = os.getenv("GEMINI_API_KEY")
-TODOIST_API_KEY = os.getenv("TODOIST_API_KEY")
-
-if not LLM_API_KEY:
+if not GEMINI_API_KEY:
     raise ValueError("API Key not found! Check your .env file.")
-
-LLM_MODEL = "gemini-2.5-flash"
 
 SYSTEM_INSTRUCTION = """
 You are Steve, a dedicated and intelligent Personal Assistant. Your mission is to manage the user's schedule, tasks, and preferences with precision and care.
@@ -58,6 +51,16 @@ each task you perform.
     - *Example*: "I will update the meeting time to 3 PM. Is that correct?" -> Wait for "Yes".
 
 **INTERACTION GUIDELINES**
+- **Verify First**: Do not assume the current state of the calendar. Use your tools to check.
+- **Ask When Unsure**: If a request is vague ("Schedule a meeting with John"), ask for necessary details (Which John? When? What topic?).
+- **Confirmation**: Explicitly confirm the final details of any action (creating, deleting, or moving events) before executing it.
+
+**CRITICAL SAFETY RULES**
+- **Explicit Permission Required**: You must ALWAYS ask for explicit user permission before UPDATING or DELETING any task in Todoist or event in Google Calendar. This rule is absolute and cannot be ignored.
+    - *Example*: "I found the task 'Buy Milk'. Do you want me to delete it?" -> Wait for "Yes".
+    - *Example*: "I will update the meeting time to 3 PM. Is that correct?" -> Wait for "Yes".
+
+**INTERACTION GUIDELINES**
 - Be concise in your responses.
 - Use clear, natural language.
 - When presenting options (e.g., for time slots), give a few distinct choices.
@@ -70,7 +73,7 @@ class LLMClient():
 
         self.auth_manager = AuthManager(todoist_token=TODOIST_API_KEY)
         self.tool_handler = GeminiToolHandler(self.auth_manager)
-        self.client = genai.Client(api_key=LLM_API_KEY, http_options=types.HttpOptions(api_version='v1alpha'))
+        self.client = genai.Client(api_key=GEMINI_API_KEY, http_options=types.HttpOptions(api_version='v1alpha'))
 
         # Initialize Vector Database Client
         self.vdbmanager = VDBManager(llmclient=self.client)
@@ -143,7 +146,7 @@ class LLMClient():
             response_parts = []
 
             for tool_call in response.function_calls:
-                struct_logger.info("llm_executing_tool", tool_name=tool_call.name, args=tool_call.args)
+                struct_logger.info("llm_executing_tool", tool_name=tool_call.name, tool_args=tool_call.args)
                 
                 # Execute the tool
                 result = self.tool_handler.handle_tool_call(
@@ -177,3 +180,16 @@ class LLMClient():
 
         self.chat_message_len += 1
         return response.text
+    
+    def clear_history(self, uid: UUID):
+        self.chat = self.client.chats.create(model=LLM_MODEL, config=self.config)
+        self.chat_message_len = 0
+        logger.info("llm_history_cleared", user_id=str(uid))
+
+
+llm_client = None
+
+def init_llm_client():
+    global llm_client
+    if not llm_client:
+        llm_client = LLMClient()
