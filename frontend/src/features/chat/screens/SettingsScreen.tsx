@@ -7,8 +7,8 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
-import { remoteEraseAssistantChat } from "../networking";
-import { loadUserData, saveUserData, UserData } from "../types/data";
+import { remoteEraseAssistantChat } from "@/services/api/networking";
+import { loadUserData, saveUserData, UserData } from "@/types/data";
 import * as Clipboard from 'expo-clipboard';
 
 const MODAL_WIDTH = 80;

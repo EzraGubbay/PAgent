@@ -28,3 +28,4 @@ backend/temp*
 PAgent-todo.md
 frontend/config.ts
 backend/get_token.py
+frontend/src/services/api/config.ts

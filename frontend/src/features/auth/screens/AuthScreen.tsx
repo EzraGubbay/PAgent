@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { loadUserData } from '../types/data';
+import { loadUserData } from "@/types/data";
 
 const SOCKET_URL = "https://notifications.ezragubbay.com";
 
