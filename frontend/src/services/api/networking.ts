@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { loadUserData } from "./types/data";
+import { loadUserData } from "@/types/data";
 import { API_URL } from "./config";
 
 export class ServerSideError extends Error {

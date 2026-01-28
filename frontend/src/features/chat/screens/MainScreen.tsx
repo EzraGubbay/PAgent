@@ -16,14 +16,14 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Svg, { Defs, Pattern, Circle, Rect } from "react-native-svg";
-import { ChatMessages } from "../components/chatMessages";
-import { ServerSideError, sendMessage, Attachment } from "../networking";
-import { ChatMessage } from "../types/chat-message";
-import { MessageType } from "../types/message-type";
+import { ChatMessages } from "@/components/ui/chatMessages";
+import { ServerSideError, sendMessage, Attachment } from "@/services/api/networking";
+import { ChatMessage } from "@/types/chat-message";
+import { MessageType } from "@/types/message-type";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import io, { Socket } from "socket.io-client";
-import { loadUserData } from "../types/data";
+import { loadUserData } from "@/types/data";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Menu, MenuOption, MenuOptions, MenuTrigger } from "react-native-popup-menu";
 import * as ImagePicker from "expo-image-picker";
@@ -32,7 +32,7 @@ import * as FileSystem from "expo-file-system";
 
 const Stack = createNativeStackNavigator();
 
-import { SOCKET_URL } from "../config";
+import { SOCKET_URL } from "@/services/api/config";
 
 export default function MainScreen({ navigation }: { navigation: any }) {
 

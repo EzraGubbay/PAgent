@@ -3,12 +3,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import MainScreen from './screens/MainScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import AuthScreen from './screens/AuthScreen';
+import MainScreen from '@/features/chat/screens/MainScreen';
+import SettingsScreen from '@/features/chat/screens/SettingsScreen';
+import AuthScreen from '@/features/auth/screens/AuthScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { loadUserData } from './types/data';
+import { loadUserData } from '@/types/data';
 import { MenuProvider } from 'react-native-popup-menu';
 
 const Stack = createNativeStackNavigator();

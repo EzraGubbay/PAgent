@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from "react-native";
-import { MessageType } from "../types/message-type";
+import { MessageType } from "@/types/message-type";
 import { Dimensions } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { Attachment } from "../networking";
+import { Attachment } from "@/services/api/networking";
 import { Menu, MenuOption, MenuOptions, MenuTrigger } from "react-native-popup-menu";
 import * as Clipboard from 'expo-clipboard';
 import { Feather } from "@expo/vector-icons";

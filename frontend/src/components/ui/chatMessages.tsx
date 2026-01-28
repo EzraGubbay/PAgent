@@ -1,7 +1,7 @@
 import { View, FlatList, Keyboard } from "react-native"
 import { MessageBubble } from "./messageBubble"
-import { MessageType } from "../types/message-type";
-import { ChatMessage } from "../types/chat-message";
+import { MessageType } from "@/types/message-type";
+import { ChatMessage } from "@/types/chat-message";
 import React, { useRef } from "react";
 import { Feather } from "@expo/vector-icons";
 import { TouchableOpacity, Text } from "react-native";
