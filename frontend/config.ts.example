@@ -1,6 +1,9 @@
+import Constants from "expo-constants";
+import * as Device from "expo-device";
+
 export const DEBUG_MODE = false;
 
-const LOCAL_IP = ""; // Your machine's local IP
+const LOCAL_IP = Device.isDevice ? Constants.expoConfig?.hostUri : "127.0.0.1" ; // Your machine's local IP
 const LOCAL_PORT = "";
 
 const PROD_API_URL = "";
