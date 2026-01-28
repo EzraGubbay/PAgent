@@ -2,8 +2,6 @@
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
-// Mock Reanimated
-require('react-native-reanimated/lib/reanimated2/jestUtils').setUpTests();
 
 // Mock React Native Safe Area Context
 jest.mock('react-native-safe-area-context', () => ({
