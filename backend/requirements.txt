@@ -22,3 +22,8 @@ logtail-python
 asgi-correlation-id
 pandas
 numpy
+
+# Testing
+pytest
+pytest-asyncio
+httpx

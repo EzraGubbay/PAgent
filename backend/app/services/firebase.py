@@ -1,12 +1,7 @@
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import messaging
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-FCM_SECRETS_DIR = os.getenv("FCM_SECRETS_DIR")
-SERVICE_ACCOUNT_KEY = os.path.join(FCM_SECRETS_DIR, "pagentServiceAccountKey.json")
+from app.core.config import FCM_SECRETS_DIR, SERVICE_ACCOUNT_KEY, IPHONE_FCM_TOKEN
 
 # 1. Initialize the app (only do this once in your main script)
 # Replace path with the actual location of your JSON key
@@ -38,7 +33,3 @@ def generate_notification(notificationToken, notification):
         print('[FCM-OK] Successfully sent message:', response)
     except Exception as e:
         print('[FCM-ERR] Error sending message:', e)
-
-# --- HOW TO USE IT ---
-# You need the token from your React App (Step 4 below)
-MY_IPHONE_TOKEN = os.getenv("IPHONE_FCM_TOKEN")

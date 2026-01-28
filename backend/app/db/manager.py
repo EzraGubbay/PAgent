@@ -1,17 +1,14 @@
-from dotenv import load_dotenv
-import os
 from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 from uuid import UUID
 from typing import Dict, List
 from bson.binary import UuidRepresentation
-import auth
+import app.core.security
 from functools import wraps
-from logger_config import logger
+from app.core.logger import logger
 
-load_dotenv()
-
-from logger_config import logger
+# Import environment variables
+from app.core.config import DATABASE_URL, DB_NAME
 
 class User:
     uid: UUID
@@ -37,13 +34,11 @@ def get_user(func):
 
 class DBManager():
     def __init__(self):
-        self.mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-        self.db_name = os.getenv("PAGENT_DB_NAME")
         try:
-            self.client = AsyncIOMotorClient(self.mongo_url, uuidRepresentation="standard")
-            self.db = self.client[self.db_name]
+            self.client = AsyncIOMotorClient(DATABASE_URL, uuidRepresentation="standard")
+            self.db = self.client[DB_NAME]
             self.users = self.db["users"]
-            logger.info("db_initialized", db_name=self.db_name)
+            logger.info("db_initialized", db_name=DB_NAME)
 
         except Exception as e:
             logger.critical("db_init_failed", error=str(e))
@@ -54,7 +49,7 @@ class DBManager():
 
         # --- Check if user with that username already exists. ---
         try:
-            exists = self.users.find_one({
+            exists = await self.users.find_one({
                 "username": username
             })
             if exists:
@@ -100,8 +95,8 @@ class DBManager():
             'username': username,
         }
 
-        response = self.users.find_one(query)
-        if response and auth.verify_password(submitted_password=passwordHash, stored_password=response.get('passwordHash')):
+        response = await self.users.find_one(query)
+        if response and app.core.security.verify_password(submitted_password=passwordHash, stored_password=response.get('passwordHash')):
             struct_logger.info("db_login_success", user_id=response.get('uid'))
             return True, response.get('uid')
         
@@ -118,7 +113,7 @@ class DBManager():
         # Note: uid is bound in the decorators wrapper
         logger.info("db_add_notification_token")
         response["notificationToken"] = token
-        self.users.update_one(filter={'uid': response.get('uid')}, update=response)
+        await self.users.update_one(filter={'uid': response.get('uid')}, update={ "$set": response })
         return True
 
     @get_user
@@ -134,9 +129,8 @@ class DBManager():
             return True, token
         else:
             logger.error("db_get_notification_token_missing", user_id=response.get('uid'))
-            raise Error(f"[DB-ERR] User {response.get('uid')} does not have a registered notification token")
     
-    async def insertMessageQueue(self, user: Dict, message: Dict) -> bool:
+    async def insertMessageQueue(self, uid: UUID, message: Dict) -> bool:
         """
         Inserts a message into the user's message queue.
         Used to cache messages to be sent to the user when they connect to the server.
@@ -145,12 +139,10 @@ class DBManager():
             bool: True if the message was successfully inserted, False otherwise.
         """
 
-        uid = user.get('uid')
         struct_logger = logger.bind(user_id=uid)
         struct_logger.debug("db_insert_message_queue_attempt", message=message)
         
-        user.get("messageQueue").append(message)
-        self.users.update_one(filter={'uid': uid}, update={ '$set': user })
+        await self.users.update_one(filter={'uid': uid}, update={ '$push': { 'messageQueue': message } })
         
         struct_logger.info("db_message_queue_updated")
         return True
@@ -171,7 +163,7 @@ class DBManager():
         logger.info("db_dequeue_message_queue", message_count=count)
 
         response['messageQueue'] = []
-        self.users.update_one(filter={'uid': response.get('uid')}, update={ '$set': response })
+        await self.users.update_one(filter={'uid': response.get('uid')}, update={ '$set': response })
         return queue
     
     async def isValidUserID(self, uid: UUID) -> bool:
@@ -186,3 +178,6 @@ class DBManager():
         
         struct_logger.warn("db_user_id_invalid")
         return False
+
+
+dbmanager = DBManager()

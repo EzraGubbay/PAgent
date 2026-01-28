@@ -1,5 +1,6 @@
 import os
 from google.oauth2.credentials import Credentials
+from app.core.config import TODOIST_API_KEY, GCAL_TOKEN_FILEPATH
 
 class AuthManager:
     """
@@ -7,7 +8,7 @@ class AuthManager:
     Currently supports a test mode with direct token injection.
     """
     def __init__(self, todoist_token=None, gcal_token=None, gcal_refresh_token=None, client_id=None, client_secret=None):
-        self._todoist_token = todoist_token or os.getenv("TODOIST_API_TOKEN")
+        self._todoist_token = TODOIST_API_KEY
         self._gcal_token = gcal_token or os.getenv("GOOGLE_CALENDAR_TOKEN")
         self._gcal_refresh_token = gcal_refresh_token or os.getenv("GOOGLE_CALENDAR_REFRESH_TOKEN")
         self._client_id = client_id or os.getenv("GOOGLE_CLIENT_ID")
@@ -33,7 +34,7 @@ class AuthManager:
         # Determine the path to token.json. 
         # Assuming token.json is in the backend/ directory (parent of gemini_tools_lib)
         # or in the current working directory.
-        token_path = os.getenv("GCAL_TOKEN_FILEPATH")
+        token_path = GCAL_TOKEN_FILEPATH
         if not os.path.exists(token_path):
             # Try looking in the parent directory if we are inside gemini_tools_lib context
             token_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "token.json")

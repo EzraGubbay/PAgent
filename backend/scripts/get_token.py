@@ -2,18 +2,23 @@ import os.path
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-FILENAME = "client_secret_202059952530-5bdlemanf02471fnqup222360u29o12d.apps.googleusercontent.com.json"
+SECRETS_DIR = os.getenv("SECRETS_DIR")
+SECRETS_FILENAME = os.getenv("GCAL_SECRETS_FILENAME")
+FILENAME = os.path.join(SECRETS_DIR, SECRETS_FILENAME)
 
 def main():
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    if os.path.exists(os.path.join(SECRETS_DIR,"gcalToken.json")):
+        creds = Credentials.from_authorized_user_file(os.path.join(SECRETS_DIR,"gcalToken.json"), SCOPES)
     
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -26,7 +31,7 @@ def main():
             creds = flow.run_local_server(port=0)
             
         # Save the credentials for the next run
-        with open("token.json", "w") as token:
+        with open(os.path.join(SECRETS_DIR,"gcalToken.json"), "w") as token:
             token.write(creds.to_json())
             print("Success! token.json created.")
 

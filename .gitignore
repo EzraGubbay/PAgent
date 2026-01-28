@@ -27,3 +27,4 @@ backend/secrets/
 backend/temp*
 PAgent-todo.md
 frontend/config.ts
+backend/get_token.py
