@@ -6,6 +6,7 @@ from app.core.redis import redis_client
 from app.db.manager import dbmanager
 from app.schemas.models import SendMessageRequest, RegisterNotificationTokenRequest
 from app.api.logic import validate_socket_model, process_llm_request
+from app.services.llm import get_llm_singleton
 import uuid
 import structlog
 
@@ -85,7 +86,7 @@ async def sendMessage(sid, req):
     struct_logger.info("ws_message_received")
     
     await sio.emit('llm_processing', {'status': 'success', 'response': 'Thinking...'}, room=req.uid)
-    await process_llm_request(req)
+    await process_llm_request(req, llm_client=get_llm_singleton())
 
 
 @sio.on('registerNotificationToken')

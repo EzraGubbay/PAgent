@@ -8,7 +8,7 @@ import uuid
 import structlog
 
 # Import initialized singletons to ensure they are set up
-from app.services.llm import init_llm_client
+from app.services.llm import get_llm_singleton
 from app.api.routes import router as api_router
 import app.api.sockets # Registers the socket events
 
@@ -44,7 +44,7 @@ combined = socketio.ASGIApp(sio, app)
 @app.on_event("startup")
 async def startup():
     # Initialize the LLM Client
-    init_llm_client()
+    get_llm_singleton()
     logger.info("app_startup_complete")
 
 # ----- MIDDLEWARE -----

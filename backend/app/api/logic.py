@@ -10,7 +10,6 @@ from app.core.config import UPLOAD_DIR, APP_IDENTIFIER
 from app.core.socket import sio
 from app.core.redis import redis_client
 from app.db.manager import dbmanager
-from app.services.llm import llm_client
 from app.services.firebase import generate_notification
 from app.schemas.enums import MessageType
 from app.schemas.models import SendMessageRequest
@@ -73,7 +72,7 @@ async def notify(uid: str, response: dict, db=dbmanager):
     except Exception as e:
         logger.error("notification_failed", error=str(e), uid=uid)
 
-async def process_llm_request(req: SendMessageRequest, db=dbmanager):
+async def process_llm_request(req: SendMessageRequest, db=dbmanager, llm_client=None):
     """
     Prepares user request to the LLM and calls the LLM before responding to user.
     """
