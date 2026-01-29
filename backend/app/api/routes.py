@@ -2,10 +2,9 @@ import os
 import shutil
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
 from app.schemas.models import AuthPayload, SendMessageRequest, ResetChatRequest
-from app.api.deps import get_db
+from app.api.deps import get_db, get_llm_client
 from app.core.logger import logger
 from app.core.config import UPLOAD_DIR
-from app.services.llm import llm_client
 from app.api.logic import process_llm_request
 from fastapi.concurrency import run_in_threadpool
 
@@ -49,7 +48,7 @@ async def login(data: AuthPayload, db=Depends(get_db)):
 
 
 @router.post('/sendMessage')
-async def sendMessage(req: SendMessageRequest, background_tasks: BackgroundTasks, db=Depends(get_db)):
+async def sendMessage(req: SendMessageRequest, background_tasks: BackgroundTasks, db=Depends(get_db), llm_client=Depends(get_llm_client)):
     """
     Handles asynchronous processing of user prompts to the llm.
     Used for when user replies to LLM from outside the app, e.g. through push notification.
@@ -57,7 +56,7 @@ async def sendMessage(req: SendMessageRequest, background_tasks: BackgroundTasks
     struct_logger = logger.bind(func_call="sendMessage_http", user_id=req.uid)
     struct_logger.info("http_message_received")
     
-    background_tasks.add_task(process_llm_request, req, db=db)
+    background_tasks.add_task(process_llm_request, req, db=db, llm_client=llm_client)
     return {'status': 'success'}
 
 
@@ -122,7 +121,7 @@ async def delete_file_object(
 
 
 @router.post('/loadNewChat')
-async def load_new_chat(req: ResetChatRequest, db=Depends(get_db)):
+async def load_new_chat(req: ResetChatRequest, db=Depends(get_db), llm_client=Depends(get_llm_client)):
     """
     Deletes old user chat history and creates a new one.
     """

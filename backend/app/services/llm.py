@@ -189,7 +189,9 @@ class LLMClient():
 
 llm_client = None
 
-def init_llm_client():
+
+def get_llm_singleton() -> LLMClient:
     global llm_client
     if not llm_client:
         llm_client = LLMClient()
+    return llm_client

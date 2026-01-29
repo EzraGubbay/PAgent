@@ -10,7 +10,7 @@ firebase_admin.initialize_app(cred)
 
 def generate_notification(notificationToken, notification):
     # 2. Construct the message
-    # Note: For PWA on iOS, we use the 'webpush' config
+    # For PWA on iOS, we use the 'webpush' config
     message = messaging.Message(
         token=notificationToken,
         notification=messaging.Notification(

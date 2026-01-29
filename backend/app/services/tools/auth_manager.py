@@ -41,7 +41,7 @@ class AuthManager:
             
         if not os.path.exists(token_path):
              # Fallback to the hardcoded relative path if logic fails, or raise error
-             token_path = "../token.json"
+             token_path = "secrets/gcalToken.json"
 
         creds = Credentials.from_authorized_user_file(token_path)
         return creds

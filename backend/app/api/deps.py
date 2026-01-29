@@ -6,3 +6,7 @@ async def get_db():
     Can be overridden in tests.
     """
     return dbmanager
+
+async def get_llm_client():
+    from app.services.llm import get_llm_singleton
+    return get_llm_singleton()

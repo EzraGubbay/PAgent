@@ -3,19 +3,22 @@
 # Default target: Triggers 'dev'
 all: dev
 
-# Full Development Environment (The "One Command" Solution)
-# 1. Starts ALL Docker containers defined in docker-compose.yml (Generalized)
-# 2. Starts the Frontend on iOS Simulator
-dev: up
+# Full Development Environment (Local Backend + Frontend)
+# 1. Starts dependencies (Redis, Mongo) in Docker
+# 2. Runs Backend (Local) and Frontend (iOS) concurrently
+dev:
 	@echo "---------------------------------------------------"
-	@echo "Backend Stack is running in Docker."
-	@echo "Starting Frontend on iOS Simulator..."
+	@echo "Starting Dependencies (Redis, Mongo)..."
+	docker compose up -d --scale backend=0
+	@echo "Starting Local Backend & Frontend..."
 	@echo "---------------------------------------------------"
-	cd frontend && npm run ios
+	npx -y concurrently -k -n "BACKEND,FRONTEND" -c "blue,magenta" \
+		"cd backend && REDIS_URL=redis://localhost:6379 DATABASE_URL=mongodb://localhost:27017 uvicorn app.main:combined --host 0.0.0.0 --port 8000 --reload" \
+		"cd frontend && npm run ios"
 
-# Generalized 'Up': Starts everything in docker-compose.yml
-# This ensures that if you add new containers (e.g., Postgres, RabbitMQ),
-# they are automatically started without changing this Makefile.
+# Dockerized Backend Environment
+# Starts everything in Docker (Backend, Redis, Mongo).
+# Useful if you don't want to run Python locally.
 up:
 	docker compose up -d
 
