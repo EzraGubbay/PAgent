@@ -76,6 +76,10 @@ export default function SettingsScreen({ navigation, route }: { navigation: any,
         setNotificationUpdateToken('');
     };
 
+    const signOut = () => {
+        navigation.navigate("Auth");
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -150,6 +154,20 @@ export default function SettingsScreen({ navigation, route }: { navigation: any,
                         />
                     </View>
                 </View>
+                <TouchableOpacity onPress={signOut}>
+                    <View
+                    style={{
+                        width: "85%",
+                        borderTopLeftRadius: 12,
+                        borderBottomLeftRadius: 12,
+                        paddingVertical: 15,
+                        paddingLeft: 15,
+                    }}>
+                            <Text style={styles.settingsText}>
+                                Sign Out
+                            </Text>
+                    </View>
+                </TouchableOpacity>
             </View>
             {showEditTokenModal &&
                 <Modal
