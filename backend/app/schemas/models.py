@@ -5,7 +5,7 @@ from typing import Union
 
 class AuthPayload(BaseModel):
     username: str
-    passwordHash: str
+    password: str
 
 class SendMessageRequest(BaseModel):
     uid: str
