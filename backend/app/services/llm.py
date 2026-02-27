@@ -154,10 +154,12 @@ class LLMClient():
                     tool_call.args
                 )
 
-                # if "error" in result:
-                #     status['status_code'] = False
-                #     status['errors'].append(result['error'])
-                struct_logger.debug("llm_tool_result", result=result)
+                if isinstance(result, dict) and "error" in result:
+                    status['status_code'] = False
+                    status['errors'].append(f"{tool_call.name}: {result['error']}")
+                    struct_logger.warn("llm_tool_returned_error", tool_name=tool_call.name, error=result['error'])
+                else:
+                    struct_logger.debug("llm_tool_result_success", tool_name=tool_call.name, result=result)
 
                 # CHANGE 3: Create correct SDK Objects (Part -> FunctionResponse)
                 # We wrap the result in a strongly typed FunctionResponse
