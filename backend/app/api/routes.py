@@ -18,12 +18,14 @@ async def registerUser(data: AuthPayload, db=Depends(get_db)):
     struct_logger = logger.bind(username=data.username)
     struct_logger.info("http_register_user_attempt")
     
-    status, response = await db.create_user(username=data.username, passwordHash=data.passwordHash)
+    status, response = await db.create_user(username=data.username, passwordHash=data.password)
     
-    if status is False:
-        struct_logger.error("http_register_user_failed", error=response)
+    if not status:
+        struct_logger.error("http_register_user_failed", reason=response, provided_hash=data.password)
+        raise HTTPException(status_code=401, detail=response)
 
-    return {'status': 'success' if status else 'error', 'response': response}
+    struct_logger.info("http_register_user_success", new_uid=response)
+    return { 'response': response }
 
 
 @router.post('/login')
@@ -31,20 +33,20 @@ async def login(data: AuthPayload, db=Depends(get_db)):
     """
     Handles user logins.
     """
-    username = data.username
-    passwordHash = data.passwordHash
 
-    struct_logger = logger.bind(username=username)
+    struct_logger = logger.bind(username=data.username)
     struct_logger.info("http_login_attempt")
 
-    status, response = await db.login(username=username, passwordHash=passwordHash)
+    status, response = await db.login(username=data.username, passwordHash=data.password)
 
     if status:
          struct_logger.info("http_login_success", user_id=response)
+         return { 'response': response }
     else:
-         struct_logger.warn("http_login_failed", reason=response)
+         struct_logger.warn("http_login_failed", reason=response, provided_hash=data.password)
+         raise HTTPException(status_code=401, detail=response)
 
-    return {'status': 'success' if status else 'error', 'response': response}
+    # return {'status': 'success' if status else 'error', 'response': response}
 
 
 @router.post('/sendMessage')
@@ -90,7 +92,6 @@ async def upload_file_object(
     logger.info("file_upload_success", user_id=uid, filename=safe_filename)
 
     return {'status': 'success', 'filename': safe_filename}
-
 
 @router.post('/deleteFileObject')
 async def delete_file_object(
