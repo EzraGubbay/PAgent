@@ -43,13 +43,22 @@ async def connect(sid, environ, auth):
         await sio.enter_room(sid, uid)
         struct_logger.info("ws_connected")
 
+        # Tell the client connection was successful
+        await sio.emit("connectSuccess", { "token": uid }, room=sid)
+
         message_queue = await dbmanager.dequeueMessageQueue(uid)
         if message_queue:
             struct_logger.info("ws_flushing_queue", count=len(message_queue))
             for payload in message_queue:
                 await sio.emit('llm_response', {'status': 'success', 'response': payload}, room=uid)
+        struct_logger.info("ws_flushed_message_queue");
+        await sio.emit("messageQueueFlushed", room=uid)
     else:
-        struct_logger.info("ws_connected_anonymous")
+        # In this case, the user provided a UID that does not exist.
+        # Do not connect client. Tell client there was an error connecting.
+        await sio.emit("connectError", "Invalid User Credentials Provided", room=sid)
+        struct_logger.info("ws_connected_nonexistent_user")
+        await sio.disconnect(sid)
     
     
 @sio.event
