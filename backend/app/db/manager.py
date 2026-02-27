@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 from uuid import UUID
@@ -10,12 +11,13 @@ from app.core.logger import logger
 # Import environment variables
 from app.core.config import DATABASE_URL, DB_NAME
 
+@dataclass
 class User:
     uid: UUID
     username: str
     passwordHash: bytes
     notificationToken: str
-    messageQueue: List[Dict]
+    messageQueue: List[Dict] = field(default_factory=list)
 
 
 def get_user(func):
@@ -96,11 +98,25 @@ class DBManager():
         }
 
         response = await self.users.find_one(query)
-        if response and app.core.security.verify_password(submitted_password=passwordHash, stored_password=response.get('passwordHash')):
-            struct_logger.info("db_login_success", user_id=response.get('uid'))
-            return True, response.get('uid')
         
-        struct_logger.warn("db_login_failed")
+        if not response:
+            struct_logger.warn("db_login_failed_user_not_found")
+            return False, 'Invalid username or password'
+            
+        stored_hash = response.get('passwordHash')
+        
+        struct_logger.warn("debug_db_login_response", found_user=True)
+        struct_logger.warn("debug_db_login_test_password_hash", test_hash=stored_hash)
+        
+        try:
+            if app.core.security.verify_password(submitted_password=passwordHash, stored_password=stored_hash):
+                struct_logger.info("db_login_success", user_id=response.get('uid'))
+                return True, response.get('uid')
+            else:
+                struct_logger.warn("db_login_failed_password_mismatch", provided=passwordHash, stored=stored_hash)
+        except Exception as e:
+            struct_logger.error("db_login_bcrypt_error", error=str(e))
+        
         return False, 'Invalid username or password'
     
     @get_user
