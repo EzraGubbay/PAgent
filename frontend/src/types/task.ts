@@ -1,5 +1,5 @@
 
-type Task = {
+export type Task = {
     id: string;
     title: string;
     description: string;
@@ -12,14 +12,14 @@ type Task = {
     subtasks: Task[];
 }
 
-enum TaskStatus {
+export enum TaskStatus {
     notStarted,
     inProgress,
     completed,
     cancelled
 }
 
-enum TaskPriority {
+export enum TaskPriority {
     low,
     medium,
     high,

@@ -43,7 +43,11 @@
         {
           "iCloudContainerEnvironment": "Production"
         }
-      ]
-    ]
+      ],
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
