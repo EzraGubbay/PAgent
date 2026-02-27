@@ -1,6 +1,7 @@
 from .auth_manager import AuthManager
 from .todoist_service import TodoistService
 from .calendar_service import CalendarService
+from app.core.logger import logger
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -296,7 +297,9 @@ class GeminiToolHandler:
         """
         Executes the specified tool with the given arguments.
         """
+        struct_logger = logger.bind(tool_name=tool_name)
         if tool_name not in self.tools_map:
+            struct_logger.error("llm_tool_not_found")
             raise ValueError(f"Unknown tool: {tool_name}")
         
         func = self.tools_map[tool_name]
@@ -305,6 +308,7 @@ class GeminiToolHandler:
             result = func(**tool_args)
             return result
         except Exception as e:
+            struct_logger.error("llm_tool_execution_failed", error=str(e), tool_args=tool_args)
             return {"error": str(e)}
 
     def process_model_response(self, response):
