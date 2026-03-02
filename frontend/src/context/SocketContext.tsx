@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from "react";
-import { AppState } from "react-native";
+import { Alert, AppState } from "react-native";
 import io, { Socket } from "socket.io-client";
 import { SOCKET_URL } from "@/api/config";
 import { RegisterNotificationTokenRequest, SendMessageRequest, UserData, SocketConnectResponse } from "@/types";
@@ -10,6 +10,7 @@ interface SocketContextData {
     socket: Socket | null;
     sendMessage: (prompt: string) => void;
     registerNotificationToken: () => void;
+    connect: () => void,
     isConnected: boolean,
     messageQueueFlushed: boolean,
 }
@@ -31,7 +32,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const [isConnected, setIsConnected] = useState(false);
     const [messageQueueFlushed, setMessageQueueFlushed] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
-    const { authenticatedByToken, isLoading, logout } = useAuthService();
+    // const { authenticatedByToken, isLoading, logout } = useAuthService();
 
     // Initial load for user data to improve dependency injection
     useEffect(() => {
@@ -45,8 +46,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        // Delay connection until auth loading is finished
-        if (isLoading) return;
 
         const socket = io(SOCKET_URL, {
             transports: ["websocket"],
@@ -58,13 +57,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
         socket.on("connectSuccess", (data: SocketConnectResponse) => {
             setIsConnected(true);
-            authenticatedByToken(data.token);
             console.log("Socket connected:", socket.id);
         });
 
         socket.on("connectError", (err) => {
             setIsConnected(false);
-            logout();
+            Alert.alert("OOps! Error connecting to server: ", err);
             console.error("Socket Connection Error:", err);
         });
 
@@ -104,11 +102,16 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         socketRef.current?.emit("registerNotificationToken", request);
     }, [userData?.uid, userData?.notificationToken]);
 
+    const connect = () => {
+        socketRef.current?.connect();
+    }
+
     return (
         <SocketContext.Provider value={{
             socket: socketInstance,
             sendMessage,
             registerNotificationToken,
+            connect,
             isConnected,
             messageQueueFlushed,
         }}>
