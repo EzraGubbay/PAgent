@@ -5,7 +5,6 @@ import {
     StyleSheet,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, router } from "expo-router";
 
 export const Header = () => {

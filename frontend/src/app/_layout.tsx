@@ -30,13 +30,13 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
-            <AuthProvider>
-                <SocketProvider>
+            <SocketProvider>
+                <AuthProvider>
                     <AuthGuard>
                         <Stack />
                     </AuthGuard>
-                </SocketProvider>
-            </AuthProvider>
+                </AuthProvider>
+            </SocketProvider>
         </SafeAreaProvider>
     );
 }

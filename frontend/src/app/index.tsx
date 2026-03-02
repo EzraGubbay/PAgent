@@ -49,7 +49,7 @@ export default function MainScreen({ route }: { route: any }) {
 
         const userData = await loadUserData();
         const formData = new FormData();
-        formData.append('uid', userData.uid);
+        formData.append('uid', userData!.uid);
         formData.append('filename', attachment.fileName);
         deleteAttachment(formData);
     }
