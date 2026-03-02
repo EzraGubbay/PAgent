@@ -2,6 +2,7 @@
   "expo": {
     "name": "PAgent",
     "slug": "PAgent",
+    "scheme": "PAgent",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ezragubbay.PAgent"
+      "bundleIdentifier": "com.ezragubbay.PAgent",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +25,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.ezragubbay.PAgent"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,7 +53,19 @@
           "iCloudContainerEnvironment": "Production"
         }
       ],
-      "expo-router"
+      "expo-router",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.179693221872-4re7nd7o3tr2kcoaffrlspjin68hm8ep"
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow ${PRODUCT_NAME} to access Face ID biometric data."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

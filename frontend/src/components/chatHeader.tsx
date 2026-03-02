@@ -42,7 +42,8 @@ export const Header = (
                     fontWeight: "bold",
                     color: "#E0E0E0",
                 }}>
-                    {connectionStatus
+                    {
+                    connectionStatus
                         ? messageQueueFlushed
                             ? "Assistant"
                             : <>
