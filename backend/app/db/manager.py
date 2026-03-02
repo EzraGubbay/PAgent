@@ -12,12 +12,19 @@ from app.core.logger import logger
 from app.core.config import DATABASE_URL, DB_NAME
 
 @dataclass
+class Integration:
+    integration_user_id: str
+    refresh_token:str
+    access_token: str
+
+@dataclass
 class User:
     uid: UUID
     username: str
     passwordHash: bytes
     notificationToken: str
     messageQueue: List[Dict] = field(default_factory=list)
+    integrations: Dict[str, Integration] = field(default_factory=dict)
 
 
 def get_user(func):
@@ -72,17 +79,12 @@ class DBManager():
             passwordHash=passwordHash.encode('utf-8'),
             notificationToken="",
             messageQueue=[],
+            integrations={},
         )
 
         try:
             # If user is successfully inserted, return True and the user's UUID
-            await self.users.insert_one({
-                "uid": new_user.uid,
-                "username": new_user.username,
-                "passwordHash": new_user.passwordHash,
-                "notificationToken": new_user.notificationToken,
-                "messageQueue": new_user.messageQueue,
-            })
+            await self.users.insert_one(new_user)
             struct_logger.info("db_create_user_success")
             return True, uid
         except Exception as e:
@@ -181,6 +183,61 @@ class DBManager():
         response['messageQueue'] = []
         await self.users.update_one(filter={'uid': response.get('uid')}, update={ '$set': response })
         return queue
+
+    # ----- INTEGRATIONS -----
+    async def update_user_integration(uid: UUID, provider: str, provider_user_id: str, tokens: Dict):
+        struct_logger = logger.bind(provider=provider, provider_user_id=provider_user_id)
+        try:
+            await self.users.update_one(
+                filter={'uid': uid},
+                update={
+                    '$set': {
+                        'integrations': {
+                            provider: {
+                                'provider_user_id': provider_user_id,
+                                'tokens': tokens
+                            }
+                        }
+                    }
+                }
+            )
+            struct_logger.info("db_integration_tokens_updated")
+            return True
+        except Exception as e:
+            struct_logger.error("db_integration_tokens_update_failed", error=str(e))
+            return False
+
+    @get_user
+    async def get_user_integration(uid: UUID, provider: str) -> Integration:
+        integration = response.get('integrations', {}).get(provider, {})
+
+        if not integration:
+            logger.error("db_integration_not_found", provider=provider)
+            return None
+        
+        return Integration(
+            provider=provider,
+            provider_user_id=integration.get('provider_user_id'),
+            tokens=integration.get('tokens')
+        )
+    
+    @get_user
+    async def delete_user_integration(uid: UUID, provider: str) -> bool:
+        struct_logger = logger.bind(provider=provider)
+        try:
+            await self.users.update_one(
+                filter={'uid': uid},
+                update={
+                    '$unset': {
+                        f'integrations.{provider}': ""
+                    }
+                }
+            )
+            struct_logger.info("db_integration_deleted")
+            return True
+        except Exception as e:
+            struct_logger.error("db_integration_delete_failed", error=str(e))
+            return False
     
     async def isValidUserID(self, uid: UUID) -> bool:
         struct_logger = logger.bind(user_id=str(uid))

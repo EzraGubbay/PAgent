@@ -1,14 +1,24 @@
 import os
 import shutil
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
-from app.schemas.models import AuthPayload, SendMessageRequest, ResetChatRequest
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends, Body
+from app.schemas.models import AuthPayload, SendMessageRequest, ResetChatRequest, IntegrationRevocationRequest, IntegrationExchangeRequest
 from app.api.deps import get_db, get_llm_client
 from app.core.logger import logger
 from app.core.config import UPLOAD_DIR
 from app.api.logic import process_llm_request
 from fastapi.concurrency import run_in_threadpool
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+import httpx
+
+from app.api.integrations import GoogleProvider, TodoistProvider
 
 router = APIRouter()
+
+PROVIDERS = {
+    "google": GoogleProvider(),
+    "todoist": TodoistProvider(),
+}
 
 @router.post('/registerUser')
 async def registerUser(data: AuthPayload, db=Depends(get_db)):
@@ -136,3 +146,51 @@ async def load_new_chat(req: ResetChatRequest, db=Depends(get_db), llm_client=De
         raise HTTPException(status_code=500, detail="LLM Client not initialized")
         
     return {'status': 'success'}
+
+# ----- INTEGRATIONS -----
+
+@router.post('/integrations/providers/{provider}/exchange')
+async def integration_exchange(provider:str, req: IntegrationExchangeRequest, db=Depends(get_db)):
+    """
+    Exchanges the mobile server auth code for Google tokens.
+    """
+
+    if provider not in PROVIDERS:
+        raise HTTPException(status_code=400, detail="Invalid or unsupported provider")
+
+    # Exchange Request
+    tokens = await PROVIDERS[provider].exchange_code(req.code)
+
+    # Verify Identity
+    user_info = PROVIDERS[provider].verify_identity(tokens)
+
+    await db.update_user_integration(
+        uid=req.uid,
+        provider=provider,
+        provider_user_id=user_info["sub"],
+        tokens=tokens
+    )
+
+    return { 'status': True }
+
+@router.post('/integrations/providers/{provider}/revoke')
+async def revoke_integration(provider:str, req: IntegrationRevocationRequest, db=Depends(get_db)):
+    """
+    Revokes the user's integration with the specified provider.
+    """
+
+    # Get refresh token
+    integration_data = await db.get_user_integration(
+        req.uid, provider
+    )
+    refresh_token = integration_data.get("tokens", {}).get("refresh_token")
+
+    # Remove integration from provider and database
+    if refresh_token and PROVIDERS.get(provider):
+        if await PROVIDERS[provider].revoke(refresh_token):
+            await db.delete_user_integration(req.uid, provider)
+            return { 'status': True }
+        else:
+            raise HTTPException(status_code=500, detail="Error revoking integration. Please revoke manually from the provider.")
+    else:
+        raise HTTPException(status_code=401, detail="Invalid integration revocation request.")
