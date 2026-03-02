@@ -1,8 +1,10 @@
-import { loginUser, registerUser } from "@/api/auth";
-import { AuthPayload, SocketConnectResponse, UserData } from "@/types";
-import { loadUserData, clearUserData } from "@/utils";
-import { router } from "expo-router";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Alert } from "react-native";
+import { router } from "expo-router";
+import { useSocketAPI } from "./SocketContext";
+import { loginUser, registerUser } from "@/api/auth";
+import { AuthPayload, AuthResponse, UserData } from "@/types";
+import { loadUserData, clearUserData } from "@/utils";
 
 interface AuthContextData {
     isAuthenticated: boolean,
@@ -28,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const { connect } = useSocketAPI();
 
     useEffect(() => {
         const initUser = async () => {
@@ -47,24 +50,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [userData]);
 
-    const handleLogin = async (authPayload: AuthPayload) => {
-        const status = await loginUser(authPayload);
-        setIsAuthenticated(status);
-        if (status) {
+    const updateAuthStatus = async (authResult: AuthResponse) => {
+        setIsAuthenticated(authResult.status);
+        if (authResult.status) {
             const data = await loadUserData();
             setUserData(data);
+            connect();
+            router.replace('/');
+        } else {
+            Alert.alert("Oops! Auth Error", authResult.response);
         }
-        router.replace('/');
+    }
+
+    const handleLogin = async (authPayload: AuthPayload) => {
+        const result: AuthResponse = await loginUser(authPayload);
+        updateAuthStatus(result);
     }
 
     const handleRegister = async (authPayload: AuthPayload) => {
-        const status = await registerUser(authPayload);
-        setIsAuthenticated(status);
-        if (status) {
-            const data = await loadUserData();
-            setUserData(data);
-        }
-        router.replace('/');
+        const result: AuthResponse = await registerUser(authPayload);
+        updateAuthStatus(result);
     }
 
     const logout = async () => {
@@ -75,9 +80,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const authenticatedByToken = (token: string) => {
+
         // For now, validate by comparing user ID
         if (userData?.uid === token && !isLoading) {
             setIsAuthenticated(true);
+            connect();
             router.replace('/');
         }
     }

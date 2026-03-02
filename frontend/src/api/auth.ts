@@ -2,7 +2,7 @@ import { loadUserData, saveUserData } from "@/utils"
 import { API_URL } from "./config"
 import { AuthPayload, AuthResponse, UserData } from "@/types"
 
-export const registerUser = async (authPayload: AuthPayload) => {
+export const registerUser = async (authPayload: AuthPayload): Promise<AuthResponse> => {
 
     const requestOptions: RequestInit = getAuthRequestOptions(authPayload);
 
@@ -29,15 +29,21 @@ export const registerUser = async (authPayload: AuthPayload) => {
             receiveNotifications: false,
         }
         await saveUserData(userData);
+
+        return {
+            status: true,
+            response: data.response,
+        };
     } catch (error) {
         console.error("Error: ", error);
-        return false;
+        return {
+            status: false,
+            response: String(error),
+        };
     }
-
-    return true;
 }
 
-export const loginUser = async (authPayload: AuthPayload) => {
+export const loginUser = async (authPayload: AuthPayload): Promise<AuthResponse> => {
     const requestOptions: RequestInit = getAuthRequestOptions(authPayload);
 
     try {
@@ -63,12 +69,18 @@ export const loginUser = async (authPayload: AuthPayload) => {
             receiveNotifications: false,
         }
         await saveUserData(userData);
+
+        return {
+            status: true,
+            response: data.response,
+        }
     } catch (error) {
         console.error("Error: ", error);
-        return false;
+        return {
+            status: false,
+            response: String(error),
+        }
     }
-
-    return true;
 }
 
 const getAuthRequestOptions = (authPayload: AuthPayload) => {

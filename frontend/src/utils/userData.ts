@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { UserData } from "@/types";
 import Bcrypt from "bcrypt-react-native";
 
-export const loadUserData = async () => {
+export const loadUserData = async (): Promise<UserData | null> => {
     try {
         const storedData = await AsyncStorage.getItem("@userData");
         if (storedData) {
@@ -11,6 +11,7 @@ export const loadUserData = async () => {
     } catch (error) {
         console.error("Error loading user data:", error);
     }
+    return null;
 }
 
 export const saveUserData = async (userData: UserData) => {

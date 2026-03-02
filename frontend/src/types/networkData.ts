@@ -6,7 +6,8 @@ export type AuthPayload = {
     password: string,
 }
 
-export interface AuthResponse extends Response {
+export interface AuthResponse {
+    status: boolean,
     response: string,
 }
 
