@@ -2,6 +2,7 @@
 ios/
 PAgent.pdf
 backend/.env
+backend/.idea/
 backend/token.json
 backend/pagentServiceAccountKey.json
 backend/__pycache__/
