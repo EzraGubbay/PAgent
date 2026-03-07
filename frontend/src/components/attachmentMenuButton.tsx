@@ -19,7 +19,6 @@ export const AttachmentMenuButton = (
             addAttachment(attachment);
             const userData = await loadUserData();
             const formData = new FormData();
-            formData.append('uid', userData.uid);
             formData.append('file', {
                 uri: `data:${attachment.mimeType};base64,${attachment.base64}`,
                 name: attachment.fileName,

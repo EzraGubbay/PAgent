@@ -10,32 +10,18 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useAuthService } from "@/context/AuthContext";
-import { AuthPayload } from "@/types";
 import { Header } from "@/components/authScreenHeader";
 import { AuthForm } from "@/components/authForm";
 
 export default function RegisterUser() {
 
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-
     const { register } = useAuthService();
-
-    const handleSubmit = async () => {
-        setPassword("");
-        const authData: AuthPayload = {
-            username: username,
-            password: password
-        }
-        register(authData);
-        setUsername("");
-    }
 
     return (
         <>
             <Header />
             <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-                <AuthForm title="Create Account" handleSubmit={handleSubmit} />
+                <AuthForm title="Create Account" submitText="Sign Up" onSubmit={register} />
     
                 <TouchableOpacity onPress={() => router.replace("/auth")}>
                     <Text style={styles.link}>

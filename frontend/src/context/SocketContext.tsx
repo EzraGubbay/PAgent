@@ -3,8 +3,7 @@ import { Alert, AppState } from "react-native";
 import io, { Socket } from "socket.io-client";
 import { SOCKET_URL } from "@/api/config";
 import { RegisterNotificationTokenRequest, SendMessageRequest, UserData, SocketConnectResponse } from "@/types";
-import { loadUserData } from "@/utils/userData";
-import { useAuthService } from "./AuthContext";
+import { loadUserData, getAccessToken } from "@/utils/userData";
 
 interface SocketContextData {
     socket: Socket | null;
@@ -32,7 +31,6 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const [isConnected, setIsConnected] = useState(false);
     const [messageQueueFlushed, setMessageQueueFlushed] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
-    // const { authenticatedByToken, isLoading, logout } = useAuthService();
 
     // Initial load for user data to improve dependency injection
     useEffect(() => {
@@ -49,7 +47,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
         const socket = io(SOCKET_URL, {
             transports: ["websocket"],
-            auth: userData?.uid ? { uid: userData.uid } : undefined,
+            auth: async (cb) => {
+                const token = await getAccessToken();
+                cb({ token });
+            },
+            autoConnect: false,
         });
 
         socketRef.current = socket;
@@ -75,7 +77,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
                 console.log("Attempting to setup WebSocket connection with the backend.")
                 socket.connect();
-            } else if (nextAppState.match(/inactive|background/)) {
+            } else
+            if (nextAppState.match(/inactive|background/)) {
                 socket.disconnect();
             }
             appState.current = nextAppState;
@@ -92,13 +95,13 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     // Used useCallback to optimize passed methods
     const sendMessage = useCallback((prompt: string) => {
         if (!userData?.uid) return;
-        const request: SendMessageRequest = { uid: userData.uid, prompt, notificationToken: userData.notificationToken || null };
+        const request: SendMessageRequest = { prompt, notificationToken: userData.notificationToken || null };
         socketRef.current?.emit("sendMessage", request);
     }, [userData?.uid, userData?.notificationToken]);
 
     const registerNotificationToken = useCallback(() => {
         if (!userData?.uid || !userData?.notificationToken) return;
-        const request: RegisterNotificationTokenRequest = { uid: userData?.uid, notificationToken: userData?.notificationToken };
+        const request: RegisterNotificationTokenRequest = { notificationToken: userData?.notificationToken };
         socketRef.current?.emit("registerNotificationToken", request);
     }, [userData?.uid, userData?.notificationToken]);
 

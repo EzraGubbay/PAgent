@@ -5,6 +5,7 @@ export const useTextInputField = (): [
     RefObject<TextInput>,
     (text: string) => void,
     () => string,
+    () => void,
 ] => {
 
     const textInputRef = useRef<TextInput>(null);
@@ -14,15 +15,19 @@ export const useTextInputField = (): [
         promptContentRef.current = text;
     }
 
-    const submitInput = () => {
-        const text = promptContentRef.current;
+    const getInput = () => {
+        return promptContentRef.current;
+    }
+
+    const clearInput = () => {
+        textInputRef.current?.clear();
         promptContentRef.current = "";
-        return text
     }
 
     return [
         textInputRef,
         updateInput,
-        submitInput,
+        getInput,
+        clearInput,
     ]
 }

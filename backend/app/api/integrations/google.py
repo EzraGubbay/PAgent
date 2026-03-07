@@ -2,15 +2,18 @@ import os
 import json
 from uuid import UUID
 
+from app.core.logger import logger
+from app.core.config import SECRETS_DIR, GCAL_SECRETS_FILENAME
 from .base import OAuthProvider
 
+from google.auth.transport import requests as google_requests
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
 from google.oauth2 import id_token
+
 import httpx
 
 GOOGLE_SCOPES = [
@@ -22,9 +25,10 @@ class GoogleProvider(OAuthProvider):
 
     async def exchange_code(self, code: str):
 
-        google_secrets = integrations.get_google_secrets()
-        google_client_id = google_secrets.client_id
-        google_client_secret = google_secrets.client_secret
+        google_secrets = get_google_secrets()
+        client_config = google_secrets.get("web") or google_secrets.get("installed", {})
+        google_client_id = client_config.get("client_id")
+        google_client_secret = client_config.get("client_secret")
 
         token_data = {
             "code": code,
@@ -48,15 +52,17 @@ class GoogleProvider(OAuthProvider):
         return response.json()
     
     def verify_identity(self, tokens: dict) -> str:
-
+        struct_logger = logger.bind(provider="google")
         try:
-            return id_token.verify_oauth2_token(
+            user_info = id_token.verify_oauth2_token(
                 tokens["id_token"],
                 google_requests.Request(),
-                google_client_id
+                (get_google_secrets().get("web") or get_google_secrets().get("installed", {})).get("client_id")
             )
-
-        except ValueError:
+            struct_logger.info("google_identity_verified", provider_user_id=user_info.get("sub"))
+            return user_info
+        except ValueError as e:
+            struct_logger.error("google_identity_verification_failed", error=str(e))
             raise HTTPException(status_code=401, detail="Invalid Google auth token.")
 
     async def revoke(self, refresh_token: str) -> bool:
@@ -74,16 +80,36 @@ class GoogleProvider(OAuthProvider):
         return "google"
         
 
-def get_google_secrets() -> Credentials:
-    with open(GCAL_SECRETS_FILENAME, 'r') as f:
-        return json.load(f)
+def get_google_secrets() -> dict:
+    from app.core.config import GCAL_SECRETS_FILENAME
+    
+    # Check docker path first since that's where the volume is mounted, fall back to local relative path
+    secrets_path = os.path.join('/app/secrets', GCAL_SECRETS_FILENAME)
+    if not os.path.exists(secrets_path):
+        secrets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "secrets", GCAL_SECRETS_FILENAME)
+        
+    with open(secrets_path, 'r') as f:
+        return json.loads(f.read())
 
-def get_gcal_creds(uid: UUID, integration: str):
+async def get_gcal_creds(uid: UUID):
+    from app.db.manager import dbmanager
+    struct_logger = logger.bind(provider="google", user_id=str(uid))
+    
+    integration = await dbmanager.get_user_integration(uid=uid, provider="google")
+    if not integration or not integration.access_token:
+        print(integration.refresh_token)
+        struct_logger.warn("google_credentials_not_found_in_db")
+        return None
+
+    struct_logger.info("google_credentials_fetched_from_db")
+    secrets = get_google_secrets()
+    client_config = secrets.get("web") or secrets.get("installed", {})
+    
     return Credentials(
-        token=None,
-        refresh_token=db.get_user_refresh_token(uid, "google"),
+        token=integration.access_token,
+        refresh_token=integration.refresh_token,
         token_uri="https://oauth2.googleapis.com/token",
-        client_id=get_google_secrets().client_id,
-        client_secret=get_google_secrets().client_secret,
+        client_id=client_config.get("client_id"),
+        client_secret=client_config.get("client_secret"),
         scopes=GOOGLE_SCOPES
     )

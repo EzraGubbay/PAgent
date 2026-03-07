@@ -2,13 +2,15 @@ import { MessageType } from "@/types/messageType";
 import { Attachment } from "./attachment";
 
 export type AuthPayload = {
-    username: string,
+    email: string,
     password: string,
 }
 
 export interface AuthResponse {
     status: boolean,
-    response: string,
+    accessToken?: string,
+    refreshToken?: string,
+    detail?: string,
 }
 
 export type SocketConnectResponse = {
@@ -21,26 +23,18 @@ export interface LLMResponse {
 }
 
 export interface SendMessageRequest {
-    uid: string,
     prompt: string,
     notificationToken: string | null,
 }
 
 export interface RegisterNotificationTokenRequest {
-    uid: string,
     notificationToken: string,
 }
 
-export interface ResetChatRequest {
-    uid: string,
-}
-
 export interface UploadFileObjectRequest {
-    uid: string,
     file: Attachment,
 }
 
 export interface DeleteFileObjectRequest {
-    uid: string,
     filename: string,
 }

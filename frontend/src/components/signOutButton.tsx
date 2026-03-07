@@ -7,15 +7,9 @@ export const SignOutButton = () => {
 
     return (
         <View
-            style={{
-                width: "85%",
-                borderTopLeftRadius: 12,
-                borderBottomLeftRadius: 12,
-                paddingVertical: 15,
-                paddingLeft: 15,
-        }}>
-            <TouchableOpacity onPress={logout}>
-                <Text style={styles.settingsText}>
+            style={styles.signOutContainer}>
+            <TouchableOpacity style={styles.signOutButton} onPress={logout}>
+                <Text style={styles.signOutText}>
                     Sign Out
                 </Text>
             </TouchableOpacity>
@@ -24,9 +18,29 @@ export const SignOutButton = () => {
 }
 
 const styles = StyleSheet.create({
-    settingsText: {
+    signOutContainer: {
+        width: "60%",
+        borderTopLeftRadius: 12,
+        borderBottomLeftRadius: 12,
+        paddingVertical: 15,
+        alignSelf: "center",
+        alignItems: "center"
+        
+    },
+    signOutButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#2C2C2C",
+        padding: 15,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#3A3A3A",
+    },
+    signOutText: {
         fontSize: 16,
         fontWeight: "500",
-        color: "#E0E0E0",
+        color: "#FF453A",
+        width: "100%",
+        textAlign: "center"
     },
 })

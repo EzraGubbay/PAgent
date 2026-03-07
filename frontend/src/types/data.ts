@@ -1,9 +1,6 @@
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 export type UserData = {
     uid: string;
-    username: string;
+    email: string;
     notificationToken: string;
     receiveNotifications: boolean;
 }

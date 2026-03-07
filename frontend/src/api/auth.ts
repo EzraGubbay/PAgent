@@ -6,81 +6,80 @@ export const registerUser = async (authPayload: AuthPayload): Promise<AuthRespon
 
     const requestOptions: RequestInit = getAuthRequestOptions(authPayload);
 
-    try {
-        const response = await fetch(
-            `${API_URL}/registerUser`,
-            requestOptions
-        );
+    const response = await fetch(
+        `${API_URL}/registerUser`,
+        requestOptions
+    );
 
-        if (!response.ok) {
-            console.log(response);
-            const errorData: AuthResponse = await response.json();
-            throw new Error(errorData.response || "Network response was not ok");
-        }
+    const data: AuthResponse = await response.json();
+    console.log(data);
 
-        const data: AuthResponse = await response.json();
-        console.log(data.response);
-
+    if (response.ok) {
         // Save new user data
         const userData: UserData = {
-            uid: data.response,
-            username: authPayload.username,
+            uid: data.detail as string,
+            email: authPayload.email,
             notificationToken: "",
             receiveNotifications: false,
         }
         await saveUserData(userData);
-
-        return {
-            status: true,
-            response: data.response,
-        };
-    } catch (error) {
-        console.error("Error: ", error);
-        return {
-            status: false,
-            response: String(error),
-        };
     }
+
+    return data;
 }
 
 export const loginUser = async (authPayload: AuthPayload): Promise<AuthResponse> => {
     const requestOptions: RequestInit = getAuthRequestOptions(authPayload);
 
-    try {
-        const response = await fetch(
-            `${API_URL}/login`,
-            requestOptions
-        );
-        
-        console.log(response);
-        if (!response.ok) {
-            const errorData: AuthResponse = await response.json();
-            throw new Error(errorData.response || "Network response was not ok");
-        }
+    const response = await fetch(
+        `${API_URL}/login`,
+        requestOptions
+    );
 
-        const data: AuthResponse = await response.json();
-        console.log(data.response);
-        
+    const data: AuthResponse = await response.json();
+    console.log(data);
+    
+    if (response.ok) {
         // Update user data with new user ID
         const userData: UserData = {
-            uid: data.response,
-            username: authPayload.username,
+            uid: data.detail as string,
+            email: authPayload.email,
             notificationToken: "",
             receiveNotifications: false,
         }
         await saveUserData(userData);
-
-        return {
-            status: true,
-            response: data.response,
-        }
-    } catch (error) {
-        console.error("Error: ", error);
-        return {
-            status: false,
-            response: String(error),
-        }
     }
+
+    return data;
+}
+
+export const loginWithGoogle = async (idToken: string, email: string): Promise<AuthResponse> => {
+    const response = await fetch(
+        `${API_URL}/auth/google`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ idToken })
+        }
+    );
+
+    const data: AuthResponse = await response.json();
+    console.log(data);
+    
+    if (response.ok) {
+        // Record seamless SSO login
+        const userData: UserData = {
+            uid: data.detail as string,
+            email: email,
+            notificationToken: "",
+            receiveNotifications: false,
+        }
+        await saveUserData(userData);
+    }
+
+    return data;
 }
 
 const getAuthRequestOptions = (authPayload: AuthPayload) => {

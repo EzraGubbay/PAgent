@@ -54,25 +54,23 @@ each task you perform.
 - **Verify First**: Do not assume the current state of the calendar. Use your tools to check.
 - **Ask When Unsure**: If a request is vague ("Schedule a meeting with John"), ask for necessary details (Which John? When? What topic?).
 - **Confirmation**: Explicitly confirm the final details of any action (creating, deleting, or moving events) before executing it.
-
-**CRITICAL SAFETY RULES**
-- **Explicit Permission Required**: You must ALWAYS ask for explicit user permission before UPDATING or DELETING any task in Todoist or event in Google Calendar. This rule is absolute and cannot be ignored.
-    - *Example*: "I found the task 'Buy Milk'. Do you want me to delete it?" -> Wait for "Yes".
-    - *Example*: "I will update the meeting time to 3 PM. Is that correct?" -> Wait for "Yes".
-
-**INTERACTION GUIDELINES**
 - Be concise in your responses.
 - Use clear, natural language.
 - When presenting options (e.g., for time slots), give a few distinct choices.
-- When adding text formatting to messages, your available options are: single-asterisk ** for bold, __ for italicized, and ~~ for strikethrough. You are to exclusively use these for formatting and nothing else. Do not try to format text as bold using **<text>** for example, but rather *<text>*
+- These are the text formatting patterns / rules available to you:
+  - Bold: *text* (single asterisk)
+  - Italic: _text_ (single underline)
+  - Strikethrough: ~text~ (single tilde)
+  - Bulleted lists: - text
+  - Numbered lists: 1. text
+  - Quote blocks: > text
+  You may combine these inline tags (e.g., *_bold and italic_*). Do not use HTML tags or standard Markdown like ** for bold.
 """
 
 # TODO: LLM Client should manage a chat per user, accessed via active chat identifier in user data.
 class LLMClient():
     def __init__(self, model: str=LLM_MODEL, chat_size_limit: int=100):
 
-        self.auth_manager = AuthManager(todoist_token=TODOIST_API_KEY)
-        self.tool_handler = GeminiToolHandler(self.auth_manager)
         self.client = genai.Client(api_key=GEMINI_API_KEY, http_options=types.HttpOptions(api_version='v1alpha'))
 
         # Initialize Vector Database Client
@@ -94,11 +92,13 @@ class LLMClient():
         self.chat_size_limit = chat_size_limit
         self.chat_message_len = 0
 
-    def sendMessage(self, uid: UUID, prompt: str, attachments: List[Dict[str, str]]=None) -> str:
+    async def sendMessage(self, uid: UUID, prompt: str, attachments: List[Dict[str, str]]=None) -> str:
         struct_logger = logger.bind(func_call="sendMessage")
         struct_logger.info("llm_request_received", has_attachments=bool(attachments))
-        struct_logger = logger.bind(func_call="sendMessage")
-        struct_logger.info("llm_request_received", has_attachments=bool(attachments))
+
+        # Initialize tools context per-user request
+        auth_manager = AuthManager(uid=uid)
+        tool_handler = GeminiToolHandler(auth_manager)
 
         parts = []
         if prompt:
@@ -149,7 +149,7 @@ class LLMClient():
                 struct_logger.info("llm_executing_tool", tool_name=tool_call.name, tool_args=tool_call.args)
                 
                 # Execute the tool
-                result = self.tool_handler.handle_tool_call(
+                result = await tool_handler.handle_tool_call(
                     tool_call.name, 
                     tool_call.args
                 )

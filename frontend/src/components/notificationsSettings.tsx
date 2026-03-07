@@ -15,7 +15,7 @@ export const NotificationsSettings = ({
 
     const [userData, setUserData] = useState<UserData>({
             uid: "",
-            username: "",
+            email: "",
             notificationToken: "",
             receiveNotifications: false,
     });

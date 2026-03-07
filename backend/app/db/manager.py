@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from motor.motor_asyncio import AsyncIOMotorClient
 import uuid
 from uuid import UUID
@@ -14,15 +14,16 @@ from app.core.config import DATABASE_URL, DB_NAME
 @dataclass
 class Integration:
     integration_user_id: str
-    refresh_token:str
+    refresh_token: str
     access_token: str
 
 @dataclass
 class User:
     uid: UUID
-    username: str
+    email: str
     passwordHash: bytes
     notificationToken: str
+    refreshToken: str = ""
     messageQueue: List[Dict] = field(default_factory=list)
     integrations: Dict[str, Integration] = field(default_factory=dict)
 
@@ -52,19 +53,19 @@ class DBManager():
         except Exception as e:
             logger.critical("db_init_failed", error=str(e))
 
-    async def create_user(self, username: str, passwordHash: str) -> bool:
-        struct_logger = logger.bind(username=username)
+    async def create_user(self, email: str, password: str) -> bool:
+        struct_logger = logger.bind(email=email)
         struct_logger.info("db_create_user_attempt")
 
-        # --- Check if user with that username already exists. ---
+        # --- Check if user with that email already exists. ---
         try:
             exists = await self.users.find_one({
-                "username": username
+                "email": email
             })
             if exists:
-                struct_logger.warn("db_create_user_username_taken")
-                # If a user already exists, with that username, return False and error message
-                return False, "Username taken. Please choose a different username"
+                struct_logger.warn("db_create_user_email_taken")
+                # If a user already exists, with that email, return False and error message
+                return False, "email taken. Please choose a different email"
         except Exception as e:
             struct_logger.error("db_create_user_error", error=str(e))
             return False, "Error registering user..."
@@ -75,52 +76,91 @@ class DBManager():
 
         new_user: User = User(
             uid=uid,
-            username=username,
-            passwordHash=passwordHash.encode('utf-8'),
+            email=email,
+            passwordHash=app.core.security.hash_password(password),
             notificationToken="",
+            refreshToken="",
             messageQueue=[],
             integrations={},
         )
 
         try:
             # If user is successfully inserted, return True and the user's UUID
-            await self.users.insert_one(new_user)
+            await self.users.insert_one(asdict(new_user))
             struct_logger.info("db_create_user_success")
             return True, uid
         except Exception as e:
             struct_logger.error("db_create_user_insert_failed", error=str(e))
             return False, "Error registering user..."
     
-    async def login(self, username: str, passwordHash: str) -> bool:
-        struct_logger = logger.bind(username=username)
+    async def login(self, email: str, password: str) -> bool:
+        struct_logger = logger.bind(email=email)
         struct_logger.info("db_login_attempt")
 
         query = {
-            'username': username,
+            'email': email,
         }
 
         response = await self.users.find_one(query)
         
         if not response:
             struct_logger.warn("db_login_failed_user_not_found")
-            return False, 'Invalid username or password'
+            return False, 'Invalid email or password'
             
         stored_hash = response.get('passwordHash')
         
         struct_logger.warn("debug_db_login_response", found_user=True)
-        struct_logger.warn("debug_db_login_test_password_hash", test_hash=stored_hash)
         
         try:
-            if app.core.security.verify_password(submitted_password=passwordHash, stored_password=stored_hash):
+            if app.core.security.verify_password(submitted_password=password, stored_password=stored_hash):
                 struct_logger.info("db_login_success", user_id=response.get('uid'))
                 return True, response.get('uid')
             else:
-                struct_logger.warn("db_login_failed_password_mismatch", provided=passwordHash, stored=stored_hash)
+                struct_logger.warn("db_login_failed_password_mismatch")
         except Exception as e:
             struct_logger.error("db_login_bcrypt_error", error=str(e))
         
-        return False, 'Invalid username or password'
-    
+        return False, 'Invalid email or password'
+
+    async def find_or_create_sso_user(self, email: str) -> bool:
+        """
+        Returns (success, uid or error message).
+        Used for seamless SSO registrations and logins.
+        """
+        struct_logger = logger.bind(email=email)
+        
+        # Check if user exists
+        try:
+            response = await self.users.find_one({"email": email})
+            if response:
+                struct_logger.info("db_sso_login_success", user_id=response.get("uid"))
+                return True, response.get("uid")
+        except Exception as e:
+            struct_logger.error("db_sso_find_user_error", error=str(e))
+            return False, "Database error finding user"
+            
+        # If user does not exist, create one
+        struct_logger.info("db_sso_register_new_user")
+        uid = str(uuid.uuid4())
+        
+        new_user: User = User(
+            uid=uid,
+            email=email,
+            passwordHash=b'', # No password since SSO
+            notificationToken="",
+            refreshToken="",
+            messageQueue=[],
+            integrations={},
+        )
+        
+        try:
+            await self.users.insert_one(asdict(new_user))
+            struct_logger.info("db_sso_create_user_success", user_id=uid)
+            return True, uid
+        except Exception as e:
+            struct_logger.error("db_sso_insert_failed", error=str(e))
+            return False, "Error registering SSO user..."
+
     @get_user
     async def addNotificationToken(self, response: Dict, token) -> bool:
         """
@@ -147,6 +187,29 @@ class DBManager():
             return True, token
         else:
             logger.error("db_get_notification_token_missing", user_id=response.get('uid'))
+            
+    async def update_refresh_token(self, uid: UUID | str, token: str) -> bool:
+        """
+        Updates the user's refresh token in the database.
+        """
+        struct_logger = logger.bind(user_id=str(uid))
+        try:
+            await self.users.update_one(
+                filter={'uid': str(uid)},
+                update={'$set': {'refreshToken': token}}
+            )
+            struct_logger.info("db_update_refresh_token_success")
+            return True
+        except Exception as e:
+            struct_logger.error("db_update_refresh_token_failed", error=str(e))
+            return False
+
+    @get_user
+    async def get_refresh_token(self, response: Dict) -> str:
+        """
+        Returns the user's refresh token.
+        """
+        return response.get("refreshToken")
     
     async def insertMessageQueue(self, uid: UUID, message: Dict) -> bool:
         """
@@ -185,18 +248,17 @@ class DBManager():
         return queue
 
     # ----- INTEGRATIONS -----
-    async def update_user_integration(uid: UUID, provider: str, provider_user_id: str, tokens: Dict):
+    async def update_user_integration(self, uid: UUID, provider: str, provider_user_id: str, tokens: Dict):
         struct_logger = logger.bind(provider=provider, provider_user_id=provider_user_id)
         try:
             await self.users.update_one(
                 filter={'uid': uid},
                 update={
                     '$set': {
-                        'integrations': {
-                            provider: {
-                                'provider_user_id': provider_user_id,
-                                'tokens': tokens
-                            }
+                        f'integrations.{provider}': {
+                            'provider_user_id': provider_user_id,
+                            'refresh_token': tokens.get('refresh_token'),
+                            'access_token': tokens.get('access_token')
                         }
                     }
                 }
@@ -208,7 +270,7 @@ class DBManager():
             return False
 
     @get_user
-    async def get_user_integration(uid: UUID, provider: str) -> Integration:
+    async def get_user_integration(self, response: Dict, provider: str) -> Integration:
         integration = response.get('integrations', {}).get(provider, {})
 
         if not integration:
@@ -216,13 +278,14 @@ class DBManager():
             return None
         
         return Integration(
-            provider=provider,
-            provider_user_id=integration.get('provider_user_id'),
-            tokens=integration.get('tokens')
+            integration_user_id=integration.get('provider_user_id'),
+            refresh_token=integration.get('refresh_token', ''),
+            access_token=integration.get('access_token', '')
         )
     
     @get_user
-    async def delete_user_integration(uid: UUID, provider: str) -> bool:
+    async def delete_user_integration(self, response: Dict, provider: str) -> bool:
+        uid = response.get('uid')
         struct_logger = logger.bind(provider=provider)
         try:
             await self.users.update_one(

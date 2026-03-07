@@ -72,11 +72,11 @@ async def notify(uid: str, response: dict, db=dbmanager):
     except Exception as e:
         logger.error("notification_failed", error=str(e), uid=uid)
 
-async def process_llm_request(req: SendMessageRequest, db=dbmanager, llm_client=None):
+async def process_llm_request(req: SendMessageRequest, uid: str, db=dbmanager, llm_client=None):
     """
     Prepares user request to the LLM and calls the LLM before responding to user.
     """
-    uid, prompt = req.uid, req.prompt
+    prompt = req.prompt
 
     # Collect attachments if user uploaded any.
     attachments = []
@@ -97,8 +97,7 @@ async def process_llm_request(req: SendMessageRequest, db=dbmanager, llm_client=
          struct_logger.error("llm_client_not_initialized")
          return
 
-    message = await run_in_threadpool(
-        llm_client.sendMessage,
+    message = await llm_client.sendMessage(
         uid,
         prompt,
         attachments

@@ -49,7 +49,6 @@ export default function MainScreen({ route }: { route: any }) {
 
         const userData = await loadUserData();
         const formData = new FormData();
-        formData.append('uid', userData!.uid);
         formData.append('filename', attachment.fileName);
         deleteAttachment(formData);
     }
@@ -76,6 +75,7 @@ export default function MainScreen({ route }: { route: any }) {
             
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={90}
                 style={{ flex: 1 }}
             >
                 <Animated.View

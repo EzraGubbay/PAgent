@@ -1,16 +1,16 @@
 import { loadUserData } from "@/utils/userData";
 import { SOCKET_URL } from "@/api/config";
+import { authenticatedFetch } from "@/api/fetch";
 
 const API_URL = SOCKET_URL.endsWith('/') ? SOCKET_URL.slice(0, -1) : SOCKET_URL;
 
 export const sendMessage = async (prompt: string) => {
     const userData = await loadUserData();
     
-    const response = await fetch(`${API_URL}/sendMessage`, {
+    const response = await authenticatedFetch(`${API_URL}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            uid: userData?.uid,
             prompt: prompt,
             notificationToken: userData?.notificationToken || null,
         })
@@ -26,12 +26,10 @@ export const sendMessage = async (prompt: string) => {
 export const remoteEraseAssistantChat = async () => {
     const userData = await loadUserData();
     
-    const response = await fetch(`${API_URL}/loadNewChat`, {
+    const response = await authenticatedFetch(`${API_URL}/loadNewChat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            uid: userData?.uid,
-        })
+        body: JSON.stringify({})
     });
 
     if (!response.ok) {

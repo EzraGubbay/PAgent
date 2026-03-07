@@ -7,7 +7,8 @@ class AuthManager:
     Handles authentication for Google Calendar and Todoist.
     Currently supports a test mode with direct token injection.
     """
-    def __init__(self, todoist_token=None, gcal_token=None, gcal_refresh_token=None, client_id=None, client_secret=None):
+    def __init__(self, uid: str, todoist_token=None, gcal_token=None, gcal_refresh_token=None, client_id=None, client_secret=None):
+        self._uid = uid
         self._todoist_token = TODOIST_API_KEY
         self._gcal_token = gcal_token or os.getenv("GOOGLE_CALENDAR_TOKEN")
         self._gcal_refresh_token = gcal_refresh_token or os.getenv("GOOGLE_CALENDAR_REFRESH_TOKEN")
@@ -20,28 +21,18 @@ class AuthManager:
             raise ValueError("Todoist token not provided. Set TODOIST_API_TOKEN env var or pass to constructor.")
         return self._todoist_token
 
-    def get_gcal_credentials(self):
+    async def get_gcal_credentials_async(self):
         """
-        Returns Google Calendar credentials object.
+        Returns Google Calendar credentials object asynchronously.
         """
-        #if not self._gcal_token:
-        #    raise ValueError("Google Calendar token not provided. Set GOOGLE_CALENDAR_TOKEN env var or pass to constructor.")
+        from app.api.integrations.google import get_gcal_creds
+        from app.core.logger import logger
         
-        # Create a Credentials object. 
-        # In a real app, you'd likely load this from a file or DB and handle refresh flows.
-        # Here we assume we have at least an access token.
+        struct_logger = logger.bind(func_call="AuthManager.get_gcal_credentials_async", user_id=self._uid)
+        struct_logger.info("auth_manager_fetching_google_creds_from_db")
+        creds = await get_gcal_creds(self._uid)
         
-        # Determine the path to token.json. 
-        # Assuming token.json is in the backend/ directory (parent of gemini_tools_lib)
-        # or in the current working directory.
-        token_path = GCAL_TOKEN_FILEPATH
-        if not os.path.exists(token_path):
-            # Try looking in the parent directory if we are inside gemini_tools_lib context
-            token_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "token.json")
-            
-        if not os.path.exists(token_path):
-             # Fallback to the hardcoded relative path if logic fails, or raise error
-             token_path = "secrets/gcalToken.json"
-
-        creds = Credentials.from_authorized_user_file(token_path)
+        if not creds:
+             struct_logger.warn("auth_manager_no_google_creds_returned")
+        
         return creds

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ChatMessage } from "@/types";
 import { useToggle } from "./useToggle";
-import { saveUserData } from "@/utils";
+import { saveUserData, dataKeys } from "@/utils";
 
 export const useChatHistory = (): [
     ChatMessage[],
@@ -14,7 +14,7 @@ export const useChatHistory = (): [
     useEffect(() => {
         const loadChatHistory = async () => {
             try {
-                const storedHistory = await AsyncStorage.getItem("@chatHistory");
+                const storedHistory = await AsyncStorage.getItem(dataKeys.chatHistory);
                 if (storedHistory) {
                     setHistory(JSON.parse(storedHistory));
                 }
@@ -31,7 +31,7 @@ export const useChatHistory = (): [
     useEffect(() => {
         if (isHistoryLoaded) {
             const historyJSON = JSON.stringify(history);
-            AsyncStorage.setItem("@chatHistory", historyJSON)
+            AsyncStorage.setItem(dataKeys.chatHistory, historyJSON)
             .catch((error) => console.log(error));
         }
     }, [history, isHistoryLoaded])

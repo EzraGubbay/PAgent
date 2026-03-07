@@ -7,6 +7,7 @@ import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from "react-
 import * as Clipboard from 'expo-clipboard';
 import { Feather } from "@expo/vector-icons";
 import React, { useRef } from "react";
+import { formatMarkdownInput } from "@/utils/markdownParser";
 
 interface MessageBubbleProps {
     message: string;
@@ -56,21 +57,6 @@ export const MessageBubble = ({
     type,
     attachments
 }: MessageBubbleProps) => {
-    const formatMessage = (text: string) => {
-        // Split by formatting markers: *bold*, _italic_, ~strike~
-        const parts = text.split(/(\*[^*]+\*|_[^_]+_|~[^~]+~)/g);
-
-        return parts.map((part, index) => {
-            if (part.startsWith("*") && part.endsWith("*")) {
-                return <Text key={index} style={{ fontWeight: "bold" }}>{part.slice(1, -1)}</Text>;
-            } else if (part.startsWith("_") && part.endsWith("_")) {
-                return <Text key={index} style={{ fontStyle: "italic" }}>{part.slice(1, -1)}</Text>;
-            } else if (part.startsWith("~") && part.endsWith("~")) {
-                return <Text key={index} style={{ textDecorationLine: "line-through" }}>{part.slice(1, -1)}</Text>;
-            }
-            return <Text key={index}>{part}</Text>;
-        });
-    };
 
     const copyToClipboard = async () => {
         await Clipboard.setStringAsync(message);
@@ -156,7 +142,7 @@ export const MessageBubble = ({
                                 fontWeight: "400",
                                 color: type === MessageType.User || type === MessageType.Assistant ? "#E0E0E0" : "#f5b505ff"
                             }}>
-                                {formatMessage(message)}
+                                {formatMarkdownInput(message)}
                             </Text>
                         ) : null}
                     </View>

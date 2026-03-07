@@ -286,14 +286,14 @@ class GeminiToolHandler:
             "gcal_delete_event": self.gcal.delete_event
         }
 
-    def get_current_datetime(self):
+    async def get_current_datetime(self):
         """
         Returns the current date and time.
         """
         tzone = ZoneInfo('Asia/Jerusalem')
         return {"current_datetime": datetime.now(tzone).isoformat()}
 
-    def handle_tool_call(self, tool_name: str, tool_args: dict):
+    async def handle_tool_call(self, tool_name: str, tool_args: dict):
         """
         Executes the specified tool with the given arguments.
         """
@@ -305,7 +305,7 @@ class GeminiToolHandler:
         func = self.tools_map[tool_name]
         try:
             # Call the function with unpacked arguments
-            result = func(**tool_args)
+            result = await func(**tool_args)
             return result
         except Exception as e:
             struct_logger.error("llm_tool_execution_failed", error=str(e), tool_args=tool_args)

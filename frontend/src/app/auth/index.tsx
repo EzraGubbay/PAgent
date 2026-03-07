@@ -9,24 +9,15 @@ import { useAuthService } from '@/context/AuthContext';
 import { AuthForm } from '@/components/authForm';
 
 // Props to let us tell the parent component we are done
-export default function AuthScreen({ navigation, route }: { navigation: any, route: any }) {
-
+export default function AuthScreen() {
+    
     const { login } = useAuthService();
-
-    const handleSubmit = async (username: string, password: string) => {
-        if (!username || !password) return;
-
-        login({
-            username: username,
-            password: password,
-        })
-    };
 
     return (
         <>
             <Header />
             <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-                <AuthForm title="Welcome Back" handleSubmit={handleSubmit} />
+                <AuthForm title="Welcome Back" submitText="Log In" onSubmit={login} />
 
                 <TouchableOpacity onPress={() => router.replace("/auth/registerUser")}>
                     <Text style={styles.link}>

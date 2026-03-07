@@ -7,6 +7,8 @@ from app.db.manager import dbmanager
 from app.schemas.models import SendMessageRequest, RegisterNotificationTokenRequest
 from app.api.logic import validate_socket_model, process_llm_request
 from app.services.llm import get_llm_singleton
+from app.core.security import verify_token
+import socketio
 import uuid
 import structlog
 
@@ -26,13 +28,20 @@ async def connect(sid, environ, auth):
     # Attach correlation ID to request headers
     await ws_middleware(sid, environ)
 
-    uid = auth.get("uid") if auth else None
+    token = auth.get("token") if auth else None
     
-    if not uid:
-        await redis_client.set(f"ws_session:{sid}", "anonymous")
-        struct_logger = logger.bind(sid=sid, user_id="anonymous")
-        struct_logger.info("ws_connected_anonymous")
-        return
+    if not token:
+        struct_logger = logger.bind(sid=sid)
+        struct_logger.warning("ws_connection_rejected_missing_token")
+        raise socketio.exceptions.ConnectionRefusedError('Authentication Required')
+
+    try:
+        jwt_data = verify_token(token, expected_type="access")
+        uid = jwt_data.sub
+    except Exception as e:
+        struct_logger = logger.bind(sid=sid)
+        struct_logger.warning("ws_connection_rejected_invalid_token", error=str(e))
+        raise socketio.exceptions.ConnectionRefusedError('Invalid Token')
     
     struct_logger = logger.bind(sid=sid, user_id=str(uid))
     
@@ -81,7 +90,6 @@ async def disconnect(sid):
     
     logger.info("ws_disconnected_cleanup_complete", sid=sid, user_id=uid)
 
-
 @sio.on('sendMessage')
 @validate_socket_model(SendMessageRequest)
 async def sendMessage(sid, req):
@@ -91,11 +99,15 @@ async def sendMessage(sid, req):
 
     Standard API method for in-app communication with user.
     """
-    struct_logger = logger.bind(func_call="sendMessage_ws", sid=sid, user_id=req.uid)
+    uid = await redis_client.get(f"ws_session:{sid}")
+    if not uid:
+        return
+        
+    struct_logger = logger.bind(func_call="sendMessage_ws", sid=sid, user_id=uid)
     struct_logger.info("ws_message_received")
     
-    await sio.emit('llm_processing', {'status': 'success', 'response': 'Thinking...'}, room=req.uid)
-    await process_llm_request(req, llm_client=get_llm_singleton())
+    await sio.emit('llm_processing', {'status': 'success', 'response': 'Thinking...'}, room=uid)
+    await process_llm_request(req, uid=uid, llm_client=get_llm_singleton())
 
 
 @sio.on('registerNotificationToken')
@@ -104,13 +116,17 @@ async def register_notification_token(sid, req: RegisterNotificationTokenRequest
     """
     Registers a user's notification token.
     """
-    response = await dbmanager.addNotificationToken(req.uid, req.token)
+    uid = await redis_client.get(f"ws_session:{sid}")
+    if not uid:
+        return
+        
+    response = await dbmanager.addNotificationToken(uid, req.notificationToken)
     await sio.emit(
         'notificationTokenRegistrationResponse', 
         {
             'status': 'success' if response else 'error',
-            'message': f'Successfully registered notification token {req.token}'
-                if response else f'Error registering notification token for user {req.uid}'
+            'message': f'Successfully registered notification token {req.notificationToken}'
+                if response else f'Error registering notification token for user {uid}'
         },
-        room=req.uid
+        room=uid
     )

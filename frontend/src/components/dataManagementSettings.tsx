@@ -2,6 +2,7 @@ import { View, TouchableOpacity, Text, StyleSheet, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { remoteEraseAssistantChat } from "@/api/ai";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { dataKeys } from "@/utils";
 
 export const DataManagementSettings = ({ route }: { route: any }) => {
 
@@ -17,7 +18,7 @@ export const DataManagementSettings = ({ route }: { route: any }) => {
                             const response = await remoteEraseAssistantChat();
                             console.log(response);
                             if (response.status == 'success') {
-                                await AsyncStorage.removeItem("@chatHistory");
+                                await AsyncStorage.removeItem(dataKeys.chatHistory);
                                 if (route.params?.onChatErased) {
                                     route.params.onChatErased();
                                 }

@@ -6,7 +6,7 @@ class TodoistService:
         self.token = auth_manager.get_todoist_token()
         self.api = TodoistAPI(self.token)
 
-    def add_task(self, 
+    async def add_task(self, 
                  content: str, 
                  description: Optional[str] = None, 
                  due_string: Optional[str] = None, 
@@ -29,7 +29,7 @@ class TodoistService:
         except Exception as e:
             return {"error": str(e)}
 
-    def get_tasks(self, filter_str: Optional[str] = None, project_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_tasks(self, filter_str: Optional[str] = None, project_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Retrieves tasks from Todoist using the SDK.
         """
@@ -42,7 +42,7 @@ class TodoistService:
         except Exception as e:
             return [{"error": str(e)}]
 
-    def update_task(self, task_id: str, **kwargs) -> Dict[str, Any]:
+    async def update_task(self, task_id: str, **kwargs) -> Dict[str, Any]:
         """
         Updates an existing task using the SDK.
         """
@@ -54,7 +54,7 @@ class TodoistService:
         except Exception as e:
             return {"error": str(e)}
 
-    def close_task(self, task_id: str) -> bool:
+    async def close_task(self, task_id: str) -> bool:
         """
         Completes a task using the SDK.
         """
@@ -63,7 +63,7 @@ class TodoistService:
         except Exception:
             return False
 
-    def delete_task(self, task_id: str) -> bool:
+    async def delete_task(self, task_id: str) -> bool:
         """
         Deletes a task using the SDK.
         """

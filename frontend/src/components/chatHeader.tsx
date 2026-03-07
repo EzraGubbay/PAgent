@@ -28,7 +28,6 @@ export const Header = (
                 paddingHorizontal: 20,
                 backgroundColor: "#1C1C1C",
             }}>
-                {/* <View /> */}
                 <View style={{
                     backgroundColor: connectionStatus ? "#00FF00" : "#FF0000",
                     width: 20,

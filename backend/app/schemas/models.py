@@ -1,29 +1,40 @@
 from pydantic import BaseModel
 from typing import Union
 from dataclasses import dataclass, field
-from fastapi import Body
+from fastapi import Body, Response
 
-# ----- DATA MODELS -----
+# ----- AUTHENTICATION -----
 
 class AuthPayload(BaseModel):
-    username: str
+    email: str
     password: str
 
-class SendMessageRequest(BaseModel):
-    uid: str
-    prompt: str
-    notificationToken: Union[str, None] = None
-    
+class GoogleAuthRequest(BaseModel):
+    idToken: str
+
+class AuthResponse(BaseModel):
+    status: bool
+    accessToken: str | None = None
+    refreshToken: str | None = None
+    detail: str | None = None
+
+class JWTPayload(BaseModel):
+    sub: str
+    exp: int
+    type: str
+
+# ----- NOTIFICATIONS -----
+
 class RegisterNotificationTokenRequest(BaseModel):
-    uid: str
     notificationToken: str
 
-class ResetChatRequest(BaseModel):
-    uid: str
+# ----- AGENT CHAT -----
+
+class SendMessageRequest(BaseModel):
+    prompt: str
+    notificationToken: Union[str, None] = None
+
+# ----- INTEGRATIONS -----
 
 class IntegrationExchangeRequest(BaseModel):
-    uid: str
     code: str = Body(..., embed=True)
-
-class IntegrationRevocationRequest(BaseModel):
-    uid: str

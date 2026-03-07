@@ -1,4 +1,20 @@
 from app.db.manager import dbmanager
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.security import verify_token
+from app.schemas.models import JWTPayload
+
+token_auth_scheme = HTTPBearer()
+
+async def verify_jwt(token: HTTPAuthorizationCredentials = Depends(token_auth_scheme)) -> JWTPayload:
+    try:
+        return verify_token(token.credentials, expected_type="access")
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Authentication Error: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 async def get_db():
     """

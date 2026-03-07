@@ -1,8 +1,9 @@
 import { Attachment } from "@/types";
 import { API_URL } from "./config";
+import { authenticatedFetch } from "@/api/fetch";
 
 export const uploadAttachment = async (formData: FormData) => {
-    const response = await fetch(`${API_URL}/uploadFileObject`, {
+    const response = await authenticatedFetch(`${API_URL}/uploadFileObject`, {
         method: "POST",
         headers: { "Content-Type": "multipart/form-data" },
         body: formData,
@@ -16,7 +17,7 @@ export const uploadAttachment = async (formData: FormData) => {
 }
 
 export const deleteAttachment = async (formData: FormData) => {
-    const response = await fetch(`${API_URL}/deleteFileObject`, {
+    const response = await authenticatedFetch(`${API_URL}/deleteFileObject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: formData,

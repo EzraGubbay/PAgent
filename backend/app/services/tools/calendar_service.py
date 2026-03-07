@@ -4,20 +4,29 @@ from datetime import datetime
 
 class CalendarService:
     def __init__(self, auth_manager):
-        self.creds = auth_manager.get_gcal_credentials()
-        self.service = build('calendar', 'v3', credentials=self.creds)
+        self.auth_manager = auth_manager
+        self.service = None
 
-    def list_calendars(self) -> List[Dict[str, Any]]:
+    async def _get_service(self):
+        if not self.service:
+            creds = await self.auth_manager.get_gcal_credentials_async()
+            if not creds:
+                raise Exception("Failed to load Google Calendar credentials")
+            self.service = build('calendar', 'v3', credentials=creds)
+        return self.service
+
+    async def list_calendars(self) -> List[Dict[str, Any]]:
         """
         Lists all calendars the user has access to.
         """
         try:
-            calendar_list = self.service.calendarList().list().execute()
+            service = await self._get_service()
+            calendar_list = service.calendarList().list().execute()
             return calendar_list.get('items', [])
         except Exception as e:
             return [{"error": str(e)}]
 
-    def list_events(self, 
+    async def list_events(self, 
                     calendar_id: str = 'primary', 
                     time_min: Optional[str] = None, 
                     time_max: Optional[str] = None, 
@@ -30,7 +39,8 @@ class CalendarService:
             time_min = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
 
         try:
-            events_result = self.service.events().list(
+            service = await self._get_service()
+            events_result = service.events().list(
                 calendarId=calendar_id, 
                 timeMin=time_min,
                 timeMax=time_max,
@@ -43,7 +53,7 @@ class CalendarService:
         except Exception as e:
             return [{"error": str(e)}]
 
-    def create_event(self, 
+    async def create_event(self, 
                      summary: str, 
                      start_time: str, 
                      end_time: str, 
@@ -70,12 +80,13 @@ class CalendarService:
         if location:
             event_body['location'] = location
 
-        event = self.service.events().insert(calendarId=calendar_id, body=event_body).execute()
+        service = await self._get_service()
+        event = service.events().insert(calendarId=calendar_id, body=event_body).execute()
         return event
         # except Exception as e:
         #     return {"error": str(e)}
 
-    def update_event(self, 
+    async def update_event(self, 
                      event_id: str, 
                      calendar_id: str = 'primary', 
                      summary: Optional[str] = None, 
@@ -88,7 +99,8 @@ class CalendarService:
         """
         try:
             # First, retrieve the event to get its current state
-            event = self.service.events().get(calendarId=calendar_id, eventId=event_id).execute()
+            service = await self._get_service()
+            event = service.events().get(calendarId=calendar_id, eventId=event_id).execute()
 
             if summary:
                 event['summary'] = summary
@@ -103,17 +115,18 @@ class CalendarService:
                 event['end']['dateTime'] = end_time
                 event['end']['timeZone'] = 'UTC'
 
-            updated_event = self.service.events().update(calendarId=calendar_id, eventId=event_id, body=event).execute()
+            updated_event = service.events().update(calendarId=calendar_id, eventId=event_id, body=event).execute()
             return updated_event
         except Exception as e:
             return {"error": str(e)}
 
-    def delete_event(self, event_id: str, calendar_id: str = 'primary') -> bool:
+    async def delete_event(self, event_id: str, calendar_id: str = 'primary') -> bool:
         """
         Deletes an event from the specified calendar.
         """
         try:
-            self.service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
+            service = await self._get_service()
+            service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
             return True
         except Exception:
             return False
