@@ -19,9 +19,6 @@ const LOCAL_API_URL = `http://${LOCAL_IP}:${LOCAL_PORT}`;
 export const API_URL = DEBUG_MODE ? LOCAL_API_URL : PROD_API_URL;
 export const SOCKET_URL = DEBUG_MODE ? LOCAL_API_URL : PROD_API_URL;
 
-com.googleusercontent.apps.179693221872-h4078jr50ml2gfk7460g46vpjee4sd86
-
 // Third-party Auth Config
 export const GOOGLE_OAUTH_CLIENT_ID_IOS = "179693221872-h4078jr50ml2gfk7460g46vpjee4sd86.apps.googleusercontent.com";
 export const GOOGLE_OAUTH_CLIENT_ID_WEB = "179693221872-rcpbqb4rfh5lrmqd17lo092244ign97r.apps.googleusercontent.com";
-
