@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from gemini_tools_lib import GeminiToolHandler, GEMINI_TOOLS
 from datetime import datetime
 
-class TestGeminiCalendarTools(unittest.TestCase):
+class TestGeminiCalendarTools(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         # Mock AuthManager since we don't need real auth for unit testing the handler logic
         self.mock_auth_manager = MagicMock()
@@ -30,24 +30,24 @@ class TestGeminiCalendarTools(unittest.TestCase):
         self.assertIn("calendar_id", props)
         self.assertIn("query", props)
 
-    def test_get_current_datetime(self):
-        result = self.handler.handle_tool_call("get_current_datetime", {})
+    async def test_get_current_datetime(self):
+        result = await self.handler.handle_tool_call("get_current_datetime", {})
         self.assertIn("current_datetime", result)
         # Verify it's a valid ISO format
         dt = datetime.fromisoformat(result["current_datetime"])
         self.assertIsInstance(dt, datetime)
 
-    def test_list_calendars_routing(self):
+    async def test_list_calendars_routing(self):
         self.handler.gcal.list_calendars.return_value = [{"id": "primary", "summary": "Main"}]
-        result = self.handler.handle_tool_call("gcal_list_calendars", {})
+        result = await self.handler.handle_tool_call("gcal_list_calendars", {})
         
         self.handler.gcal.list_calendars.assert_called_once()
         self.assertEqual(result, [{"id": "primary", "summary": "Main"}])
 
-    def test_list_events_routing_with_query(self):
+    async def test_list_events_routing_with_query(self):
         self.handler.gcal.list_events.return_value = []
         args = {"query": "meeting", "calendar_id": "work"}
-        self.handler.handle_tool_call("gcal_list_events", args)
+        await self.handler.handle_tool_call("gcal_list_events", args)
         
         self.handler.gcal.list_events.assert_called_once_with(query="meeting", calendar_id="work")
 

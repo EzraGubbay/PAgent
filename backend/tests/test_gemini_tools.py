@@ -1,7 +1,8 @@
 import os
+import asyncio
 from gemini_tools_lib import AuthManager, GeminiToolHandler, GEMINI_TOOLS
 
-def main():
+async def main():
     print("Initializing Gemini Tools Library...")
     
     # Initialize AuthManager with dummy tokens for testing
@@ -28,10 +29,10 @@ def main():
     # However, this demonstrates the internal API usage.
     try:
         # We expect this to fail with the fake token, but it proves the wiring works.
-        result = tool_handler.handle_tool_call(tool_name, tool_args)
+        result = await tool_handler.handle_tool_call(tool_name, tool_args)
         print("Result:", result)
     except Exception as e:
         print(f"Execution failed as expected (due to fake token): {e}")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
