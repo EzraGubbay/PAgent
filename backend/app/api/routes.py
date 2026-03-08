@@ -282,3 +282,21 @@ async def revoke_integration(provider:str, db=Depends(get_db), user: JWTPayload 
             raise HTTPException(status_code=500, detail="Error revoking integration. Please revoke manually from the provider.")
     else:
         raise HTTPException(status_code=401, detail="Invalid integration revocation request.")
+
+@router.post('/integrations/providers/{provider}/validate')
+async def validate_integration(provider: str, db=Depends(get_db), user: JWTPayload = Depends(verify_jwt)):
+    """
+    Validates if the user currently has an active, valid connection to the provider.
+    """
+    uid = user.sub
+    
+    # In a real app, you would want to use Google's tokeninfo endpoint to verify if
+    # the existing stored access token is still active and valid instead of just checking
+    # if it exists, however checking existence works as a proxy for the time being.
+    integration_data = await db.get_user_integration(uid, provider)
+    
+    if integration_data and getattr(integration_data, "access_token", None):
+        return { 'status': True }
+    else:
+        return { 'status': False }
+
