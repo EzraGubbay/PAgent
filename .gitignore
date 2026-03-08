@@ -1,6 +1,9 @@
 .DS_Store
 ios/
 PAgent.pdf
+PAgent-todo.md
+
+# Backend
 backend/.env
 backend/.idea/
 backend/token.json
@@ -17,19 +20,19 @@ backend/testing/test_calendar_tools.py
 backend/testing/test_gemini_tools.py
 backend/testing/test_new_tools.py
 backend/testing/**
-.env
-.secrets.env
-*.pem
-key.json
 backend/temp_storage/
 backend/.pytest_cache/
 backend/.coverage
 backend/secrets/
 backend/temp*
-PAgent-todo.md
-frontend/config.ts
 backend/get_token.py
-frontend/src/services/api/config.ts
+backend/prod/
+
+# Secrets
+.env
+.secrets.env
+*.pem
+key.json
 
 # Frontend
 frontend/node_modules/
@@ -39,6 +42,8 @@ frontend/web-build/
 frontend/ios/
 frontend/android/
 frontend/GoogleService-Info.plist
+frontend/src/services/api/config.ts
+frontend/config.ts
 
 # README drafts
 readme_drafts/
