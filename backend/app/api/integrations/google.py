@@ -82,12 +82,13 @@ class GoogleProvider(OAuthProvider):
 
 def get_google_secrets() -> dict:
     
-    # Check docker path first since that's where the volume is mounted, fall back to local relative path
+    # Prioritize the explicitly configured environment variable (either from .env or Docker override)
     secrets_path = os.path.join(SECRETS_DIR, GCAL_SECRETS_FILENAME)
-    print(secrets_path)
+    
     if not os.path.exists(secrets_path):
+        # Fallback for local, out-of-container development without a complete .env
         secrets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "secrets", GCAL_SECRETS_FILENAME)
-        
+            
     with open(secrets_path, 'r') as f:
         return json.loads(f.read())
 

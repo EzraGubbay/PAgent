@@ -39,6 +39,7 @@ services:
 
     environment:
       - FCM_SECRETS_DIR=/app/secrets/
+      - SECRETS_DIR=/app/secrets/
 
 networks:
   dev-network:
