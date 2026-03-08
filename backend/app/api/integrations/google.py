@@ -81,10 +81,10 @@ class GoogleProvider(OAuthProvider):
         
 
 def get_google_secrets() -> dict:
-    from app.core.config import GCAL_SECRETS_FILENAME
     
     # Check docker path first since that's where the volume is mounted, fall back to local relative path
-    secrets_path = os.path.join('/app/secrets', GCAL_SECRETS_FILENAME)
+    secrets_path = os.path.join(SECRETS_DIR, GCAL_SECRETS_FILENAME)
+    print(secrets_path)
     if not os.path.exists(secrets_path):
         secrets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "secrets", GCAL_SECRETS_FILENAME)
         
@@ -97,7 +97,6 @@ async def get_gcal_creds(uid: UUID):
     
     integration = await dbmanager.get_user_integration(uid=uid, provider="google")
     if not integration or not integration.access_token:
-        print(integration.refresh_token)
         struct_logger.warn("google_credentials_not_found_in_db")
         return None
 
