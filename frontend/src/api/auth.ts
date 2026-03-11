@@ -12,7 +12,6 @@ export const registerUser = async (authPayload: AuthPayload): Promise<AuthRespon
     );
 
     const data: AuthResponse = await response.json();
-    console.log(data);
 
     if (response.ok) {
         // Save new user data
@@ -37,7 +36,6 @@ export const loginUser = async (authPayload: AuthPayload): Promise<AuthResponse>
     );
 
     const data: AuthResponse = await response.json();
-    console.log(data);
     
     if (response.ok) {
         // Update user data with new user ID
@@ -54,32 +52,35 @@ export const loginUser = async (authPayload: AuthPayload): Promise<AuthResponse>
 }
 
 export const loginWithGoogle = async (idToken: string, email: string): Promise<AuthResponse> => {
-    const response = await fetch(
-        `${API_URL}/auth/google`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ idToken })
-        }
-    );
+    try {
+        const response = await fetch(
+            `${API_URL}/auth/google`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ idToken })
+            }
+        );
 
-    const data: AuthResponse = await response.json();
-    console.log(data);
-    
-    if (response.ok) {
-        // Record seamless SSO login
-        const userData: UserData = {
-            uid: data.detail as string,
-            email: email,
-            notificationToken: "",
-            receiveNotifications: false,
+        const data: AuthResponse = await response.json();
+        
+        if (response.ok) {
+            // Record seamless SSO login
+            const userData: UserData = {
+                uid: data.detail as string,
+                email: email,
+                notificationToken: "",
+                receiveNotifications: false,
+            }
+            await saveUserData(userData);
         }
-        await saveUserData(userData);
+
+        return data;
+    } catch (error) {
+        throw error;
     }
-
-    return data;
 }
 
 const getAuthRequestOptions = (authPayload: AuthPayload) => {
